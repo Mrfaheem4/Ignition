@@ -2,6 +2,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment, Html } from "@react-three/drei";
 import { useRef, useEffect, useState } from "react";
 import gsap from "gsap";
+import IntroOverlay from "./IntroOverlay";
 
 function PorscheModel() {
   const { scene } = useGLTF("/porsche.glb");
@@ -61,10 +62,86 @@ function Hotspot({ position, label, onClick }) {
   );
 }
 
-function CameraRig({ targetPosition, targetLookAt, onUserInteract }) {
+function CameraRig({
+  targetPosition,
+  targetLookAt,
+  onUserInteract,
+  introPlaying,
+}) {
   const { camera } = useThree();
   const controlsRef = useRef();
 
+  // Intro sequence
+  useEffect(() => {
+    if (!introPlaying) return;
+
+    const controls = controlsRef.current;
+    controls.enabled = false;
+
+    // Set start position
+    camera.position.set(8, 0.5, 4);
+    controls.target.set(0, 0.5, 0);
+    controls.update();
+
+    const tl = gsap.timeline({
+      onUpdate: () => {
+        controls.update();
+      },
+    });
+
+    // Shot 2 — Sweep to front
+    tl.to(camera.position, {
+      x: 1,
+      y: 1.2,
+      z: 7,
+      duration: 1.2,
+      ease: "power3.inOut",
+    })
+
+      // NEW Shot 3 — Close-up on the Wheel/Side
+      .to(camera.position, {
+        x: -4,
+        y: 0.5,
+        z: 2,
+        duration: 1.5,
+        ease: "power2.inOut",
+      })
+      .to(
+        controls.target,
+        {
+          x: -1,
+          y: 0.3,
+          z: 1,
+          duration: 1.5,
+          ease: "power2.inOut",
+        },
+        "<",
+      ) // "<" starts this at the same time as the camera position move
+
+      // Shot 4 — Settle to default
+      .to(camera.position, {
+        x: 4,
+        y: 2,
+        z: 5,
+        duration: 1.2,
+        ease: "power3.inOut",
+      })
+      .to(
+        controls.target,
+        {
+          x: 0,
+          y: 0.5,
+          z: 0,
+          duration: 1.2,
+          ease: "power3.inOut",
+        },
+        "<",
+      );
+
+    return () => tl.kill();
+  }, [introPlaying]);
+
+  // Regular camera transitions
   useEffect(() => {
     if (!targetPosition || !targetLookAt) return;
 
@@ -115,11 +192,13 @@ function CameraRig({ targetPosition, targetLookAt, onUserInteract }) {
     />
   );
 }
-
 export default function CarViewer() {
   const [target, setTarget] = useState(null);
   const [activeView, setActiveView] = useState("default");
   const [isSnapped, setIsSnapped] = useState(false);
+  const [introPlaying, setIntroPlaying] = useState(true);
+  const [introDone, setIntroDone] = useState(false);
+  const carNameRef = useRef();
 
   const views = {
     default: { position: { x: 4, y: 2, z: 5 }, lookAt: { x: 0, y: 0.5, z: 0 } },
@@ -152,6 +231,24 @@ export default function CarViewer() {
     },
   ];
 
+  const handleIntroComplete = () => {
+    setIntroPlaying(false);
+    setIntroDone(true);
+    gsap.fromTo(
+      carNameRef.current,
+      { opacity: 0, x: -10 },
+      { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" },
+    );
+  };
+
+  const handleUserInteract = () => {
+    setIsSnapped(false);
+    if (!introDone) {
+      setIntroDone(true);
+      gsap.to(carNameRef.current, { opacity: 1, x: 0, duration: 0.3 });
+    }
+  };
+
   return (
     <div style={{ width: "100vw", height: "100vh", background: "#0a0a0a" }}>
       <style>{`
@@ -161,12 +258,59 @@ export default function CarViewer() {
         }
       `}</style>
 
+      {/* permanent car name top left */}
+      <div
+        ref={carNameRef}
+        style={{
+          position: "absolute",
+          top: 24,
+          left: 24,
+          zIndex: 30,
+          opacity: 0,
+          color: "white",
+          fontFamily: "sans-serif",
+          pointerEvents: "none",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.3em",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.5)",
+            marginBottom: 2,
+          }}
+        >
+          Porsche
+        </div>
+        <div
+          style={{
+            fontSize: 16,
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+            fontWeight: 600,
+          }}
+        >
+          911 Carrera S
+        </div>
+      </div>
+
+      {/* intro overlay */}
+      {!introDone && (
+        <IntroOverlay
+          carName="Carrera S"
+          carModel="Porsche 911"
+          onComplete={handleIntroComplete}
+        />
+      )}
+
+      {/* temp view buttons */}
       <div
         style={{
           position: "absolute",
           zIndex: 10,
           top: 20,
-          left: 20,
+          right: 20,
           display: "flex",
           gap: 10,
         }}
@@ -193,30 +337,32 @@ export default function CarViewer() {
         ))}
       </div>
 
-      <Canvas camera={{ position: [4, 2, 5], fov: 45 }}>
+      <Canvas camera={{ position: [8, 0.5, 4], fov: 45 }}>
         <ambientLight intensity={0.5} />
         <directionalLight position={[5, 5, 5]} intensity={1} />
         <PorscheModel />
 
-        {hotspots
-          .filter((h) => !(isSnapped && h.id === activeView))
-          .map((h) => (
-            <Hotspot
-              key={h.id}
-              position={h.position}
-              label={h.label}
-              onClick={() => {
-                setTarget(h.view);
-                setActiveView(h.id);
-                setIsSnapped(true);
-              }}
-            />
-          ))}
+        {introDone &&
+          hotspots
+            .filter((h) => !(isSnapped && h.id === activeView))
+            .map((h) => (
+              <Hotspot
+                key={h.id}
+                position={h.position}
+                label={h.label}
+                onClick={() => {
+                  setTarget(h.view);
+                  setActiveView(h.id);
+                  setIsSnapped(true);
+                }}
+              />
+            ))}
 
         <CameraRig
           targetPosition={target?.position}
           targetLookAt={target?.lookAt}
-          onUserInteract={() => setIsSnapped(false)}
+          onUserInteract={handleUserInteract}
+          introPlaying={introPlaying}
         />
         <Environment preset="city" />
       </Canvas>
