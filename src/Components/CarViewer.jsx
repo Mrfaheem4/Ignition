@@ -5,7 +5,7 @@ import gsap from "gsap";
 import IntroOverlay from "./IntroOverlay";
 
 function PorscheModel() {
-  const { scene } = useGLTF("/porsche.glb");
+  const { scene } = useGLTF("/mercedes.glb");
   return <primitive object={scene} />;
 }
 
@@ -98,7 +98,7 @@ function CameraRig({
       ease: "power3.inOut",
     })
 
-      // NEW Shot 3 — Close-up on the Wheel/Side
+      // NEW Shot 3 — Close-up on the Side
       .to(camera.position, {
         x: -4,
         y: 0.5,
@@ -201,13 +201,19 @@ export default function CarViewer() {
   const carNameRef = useRef();
 
   const views = {
-    default: { position: { x: 4, y: 2, z: 5 }, lookAt: { x: 0, y: 0.5, z: 0 } },
-    front: { position: { x: 0, y: 1, z: 6 }, lookAt: { x: 0, y: 0.5, z: 0 } },
-    wheel: {
-      position: { x: -4, y: 0.5, z: 2 },
+    default: {
+      position: { x: 3, y: 1.5, z: 3.5 },
+      lookAt: { x: 0, y: 0.5, z: 0 },
+    },
+    front: { position: { x: 0, y: 1, z: 4 }, lookAt: { x: 0, y: 0.5, z: 0 } },
+    side: {
+      position: { x: -4, y: 0.5, z: 1.5 },
       lookAt: { x: -1, y: 0.3, z: 1 },
     },
-    rear: { position: { x: 0, y: 1.5, z: -6 }, lookAt: { x: 0, y: 0.5, z: 0 } },
+    rear: {
+      position: { x: 0, y: 1.5, z: -4.5 },
+      lookAt: { x: 0, y: 0.5, z: 1 },
+    },
   };
 
   const hotspots = [
@@ -218,10 +224,10 @@ export default function CarViewer() {
       view: views.front,
     },
     {
-      id: "wheel",
-      label: "Wheels",
+      id: "side",
+      label: "Sides",
       position: { x: 0.85, y: 0.3, z: 1.5 },
-      view: views.wheel,
+      view: views.side,
     },
     {
       id: "rear",
@@ -339,7 +345,7 @@ export default function CarViewer() {
 
       <Canvas camera={{ position: [8, 0.5, 4], fov: 45 }}>
         <ambientLight intensity={0.5} />
-        <directionalLight position={[5, 5, 5]} intensity={1} />
+        <directionalLight position={[5, 5, 50]} intensity={5} />
         <PorscheModel />
 
         {introDone &&
