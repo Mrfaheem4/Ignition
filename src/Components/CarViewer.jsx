@@ -10,12 +10,6 @@ function CarModel({ modelPath, introPlaying }) {
   const { scene } = useGLTF(modelPath);
   const modelRef = useRef();
 
-  useFrame((_, delta) => {
-    if (introPlaying && modelRef.current) {
-      modelRef.current.rotation.y += delta * ((Math.PI * 2) / 3); // full 360 in 3 seconds
-    }
-  });
-
   return <primitive ref={modelRef} object={scene} />;
 }
 
