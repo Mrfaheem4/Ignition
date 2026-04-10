@@ -6,17 +6,17 @@ import gsap from "gsap";
 import IntroOverlay from "./IntroOverlay";
 import LoadingScreen from "./LoadingScreen";
 import cars from "../data/cars";
+import InfoPanel from "./InfoPanel";
+import BottomTiles from "./BottomTiles";
 
 function CarModel({ modelPath, onLoaded }) {
-  const gltf = useGLTF(modelPath);
+  const { scene } = useGLTF(modelPath);
 
   useEffect(() => {
-    if (gltf?.scene) {
-      onLoaded?.();
-    }
-  }, [gltf, onLoaded]);
+    if (onLoaded) onLoaded();
+  }, [scene]);
 
-  return <primitive object={gltf.scene} />;
+  return <primitive object={scene} />;
 }
 
 function Hotspot({ position, label, onClick }) {
@@ -76,6 +76,7 @@ function CameraRig({
   targetPosition,
   targetLookAt,
   onUserInteract,
+  onUserStopInteract,
   startPosition,
   defaultView,
   onIntroComplete,
@@ -185,17 +186,6 @@ function CameraRig({
     );
   }, [targetPosition, targetLookAt]);
 
-  useFrame(() => {
-    const el = document.getElementById("cam-debug");
-    if (controlsRef.current && el) {
-      const pos = camera.position;
-      const tar = controlsRef.current.target;
-      el.innerText =
-        `position: { x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)} }\n` +
-        `target:   { x: ${tar.x.toFixed(2)}, y: ${tar.y.toFixed(2)}, z: ${tar.z.toFixed(2)} }`;
-    }
-  });
-
   return (
     <OrbitControls
       ref={controlsRef}
@@ -203,6 +193,7 @@ function CameraRig({
       enableDamping={true}
       dampingFactor={0.05}
       onStart={onUserInteract}
+      onEnd={onUserStopInteract}
     />
   );
 }
@@ -213,13 +204,18 @@ export default function CarViewer() {
 
   const [target, setTarget] = useState(null);
   const [activeView, setActiveView] = useState("default");
+  const [activeHotspot, setActiveHotspot] = useState(null);
   const [isSnapped, setIsSnapped] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [introPlaying, setIntroPlaying] = useState(true);
   const [introDone, setIntroDone] = useState(false);
   const [modelLoaded, setModelLoaded] = useState(false);
   const carNameRef = useRef();
+  const introCompletedRef = useRef(false);
 
   const handleIntroComplete = () => {
+    if (introCompletedRef.current) return;
+    introCompletedRef.current = true;
     setIntroPlaying(false);
     setIntroDone(true);
     gsap.fromTo(
@@ -230,12 +226,18 @@ export default function CarViewer() {
   };
 
   const handleUserInteract = () => {
+    setIsDragging(true);
     setIsSnapped(false);
+    setActiveHotspot(null);
     if (!introDone) {
       setIntroPlaying(false);
       setIntroDone(true);
       gsap.to(carNameRef.current, { opacity: 1, x: 0, duration: 0.3 });
     }
+  };
+
+  const handleUserStopInteract = () => {
+    setIsDragging(false);
   };
 
   return (
@@ -303,25 +305,18 @@ export default function CarViewer() {
           onComplete={handleIntroComplete}
         />
       )}
+      {/* info panel */}
+      {introDone && (
+        <InfoPanel
+          hotspot={activeHotspot}
+          accent={currentCar.intro.text.accent}
+          onClose={() => setActiveHotspot(null)}
+          visible={!!activeHotspot && !isDragging}
+        />
+      )}
 
-      {/* debug overlay */}
-      <div
-        id="cam-debug"
-        style={{
-          position: "absolute",
-          bottom: 20,
-          left: 20,
-          zIndex: 100,
-          color: "lime",
-          fontFamily: "monospace",
-          fontSize: 12,
-          background: "rgba(0,0,0,0.6)",
-          padding: "8px 12px",
-          borderRadius: 6,
-          whiteSpace: "pre",
-          pointerEvents: "none",
-        }}
-      />
+      {/* bottom tiles */}
+      {introDone && <BottomTiles car={currentCar} visible={!isDragging} />}
 
       {/* temp view buttons */}
       <div
@@ -369,12 +364,10 @@ export default function CarViewer() {
         <ambientLight intensity={0.5} />
         <directionalLight position={[5, 5, 5]} intensity={1} />
 
-        <Suspense fallback={null}>
-          <CarModel
-            modelPath={currentCar.model}
-            onLoaded={() => setModelLoaded(true)}
-          />
-        </Suspense>
+        <CarModel
+          modelPath={currentCar.model}
+          onLoaded={() => setModelLoaded(true)}
+        />
 
         {introDone &&
           currentCar.hotspots
@@ -388,6 +381,7 @@ export default function CarViewer() {
                   setTarget(currentCar.views[h.view]);
                   setActiveView(h.id);
                   setIsSnapped(true);
+                  setActiveHotspot(h);
                 }}
               />
             ))}
@@ -396,6 +390,7 @@ export default function CarViewer() {
           targetPosition={target?.position}
           targetLookAt={target?.lookAt}
           onUserInteract={handleUserInteract}
+          onUserStopInteract={handleUserStopInteract}
           startPosition={currentCar.intro.startPosition}
           defaultView={currentCar.views.default}
           onIntroComplete={handleIntroComplete}

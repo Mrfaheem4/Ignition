@@ -1,20 +1,21 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 
-export default function IntroOverlay({ carName, carModel, onComplete }) {
+export default function IntroOverlay({
+  carName,
+  carModel,
+  accent,
+  onComplete,
+}) {
   const overlayRef = useRef();
   const modelRef = useRef();
   const nameRef = useRef();
-  const skipRef = useRef();
 
   useEffect(() => {
     const tl = gsap.timeline();
 
-    // everything starts invisible
     gsap.set([modelRef.current, nameRef.current], { opacity: 0, y: 20 });
-    gsap.set(overlayRef.current, { opacity: 1 });
 
-    // model name fades in first
     tl.to(
       modelRef.current,
       {
@@ -23,10 +24,9 @@ export default function IntroOverlay({ carName, carModel, onComplete }) {
         duration: 0.4,
         ease: "power2.out",
       },
-      2.8,
+      0.3,
     )
 
-      // then big name
       .to(
         nameRef.current,
         {
@@ -35,10 +35,9 @@ export default function IntroOverlay({ carName, carModel, onComplete }) {
           duration: 0.4,
           ease: "power2.out",
         },
-        3.1,
+        0.6,
       )
 
-      // sit for 1s then fade the big text out
       .to(
         [modelRef.current, nameRef.current],
         {
@@ -50,7 +49,7 @@ export default function IntroOverlay({ carName, carModel, onComplete }) {
             if (onComplete) onComplete();
           },
         },
-        4.1,
+        2.0,
       );
 
     return () => tl.kill();
@@ -75,6 +74,7 @@ export default function IntroOverlay({ carName, carModel, onComplete }) {
         inset: 0,
         zIndex: 20,
         pointerEvents: "none",
+        background: "transparent",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -82,14 +82,13 @@ export default function IntroOverlay({ carName, carModel, onComplete }) {
         gap: 8,
       }}
     >
-      {/* model name — small above */}
       <div
         ref={modelRef}
         style={{
-          color: "rgba(255,255,255,0.6)",
-          fontSize: 14,
+          color: accent || "rgba(255,255,255,0.6)",
+          fontSize: 13,
           fontFamily: "sans-serif",
-          letterSpacing: "0.3em",
+          letterSpacing: "0.4em",
           textTransform: "uppercase",
           fontWeight: 300,
         }}
@@ -97,14 +96,13 @@ export default function IntroOverlay({ carName, carModel, onComplete }) {
         {carModel}
       </div>
 
-      {/* big car name */}
       <div
         ref={nameRef}
         style={{
           color: "white",
           fontSize: 72,
           fontFamily: "sans-serif",
-          letterSpacing: "0.1em",
+          letterSpacing: "0.08em",
           textTransform: "uppercase",
           fontWeight: 700,
           lineHeight: 1,
@@ -113,9 +111,7 @@ export default function IntroOverlay({ carName, carModel, onComplete }) {
         {carName}
       </div>
 
-      {/* skip button */}
       <div
-        ref={skipRef}
         onClick={handleSkip}
         style={{
           position: "absolute",
