@@ -1,16 +1,22 @@
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment, Html } from "@react-three/drei";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, Suspense } from "react";
 import { useParams } from "react-router-dom";
 import gsap from "gsap";
 import IntroOverlay from "./IntroOverlay";
+import LoadingScreen from "./LoadingScreen";
 import cars from "../data/cars";
 
-function CarModel({ modelPath, introPlaying }) {
-  const { scene } = useGLTF(modelPath);
-  const modelRef = useRef();
+function CarModel({ modelPath, onLoaded }) {
+  const gltf = useGLTF(modelPath);
 
-  return <primitive ref={modelRef} object={scene} />;
+  useEffect(() => {
+    if (gltf?.scene) {
+      onLoaded?.();
+    }
+  }, [gltf, onLoaded]);
+
+  return <primitive object={gltf.scene} />;
 }
 
 function Hotspot({ position, label, onClick }) {
@@ -76,56 +82,69 @@ function CameraRig({
 }) {
   const { camera } = useThree();
   const controlsRef = useRef();
-  const introPlayed = useRef(false);
+  const introStarted = useRef(false);
 
-  // intro — push in from startPosition to defaultView over 3 seconds
-  useEffect(() => {
-    if (!startPosition || !defaultView) return;
-    if (introPlayed.current) return;
-    introPlayed.current = true;
+  useFrame(() => {
+    if (!introStarted.current && controlsRef.current) {
+      introStarted.current = true;
 
-    const controls = controlsRef.current;
-    controls.enabled = false;
+      const controls = controlsRef.current;
+      controls.enabled = false;
 
-    // snap camera to start position
-    camera.position.set(startPosition.x, startPosition.y, startPosition.z);
-    controls.target.set(0, 0.5, 0);
-    controls.update();
+      camera.position.set(startPosition.x, startPosition.y, startPosition.z);
+      controls.target.set(
+        defaultView.lookAt.x,
+        defaultView.lookAt.y,
+        defaultView.lookAt.z,
+      );
+      controls.update();
 
-    // push in to default view over 3 seconds — matches the 360 rotation
-    const tl = gsap.timeline({
-      onComplete: () => {
-        controls.target.set(
-          defaultView.lookAt.x,
-          defaultView.lookAt.y,
-          defaultView.lookAt.z,
-        );
-        controls.update();
-        controls.enabled = true;
-        if (onIntroComplete) onIntroComplete();
-      },
-    });
+      const startRadius = Math.sqrt(
+        startPosition.x ** 2 + startPosition.z ** 2,
+      );
+      const endRadius = Math.sqrt(
+        defaultView.position.x ** 2 + defaultView.position.z ** 2,
+      );
+      const startAngle = Math.atan2(startPosition.z, startPosition.x);
+      const endAngle = startAngle - Math.PI * 2;
 
-    tl.to(camera.position, {
-      x: defaultView.position.x,
-      y: defaultView.position.y,
-      z: defaultView.position.z,
-      duration: 3,
-      ease: "power2.inOut",
-      onUpdate: () => {
-        controls.target.set(
-          defaultView.lookAt.x,
-          defaultView.lookAt.y,
-          defaultView.lookAt.z,
-        );
-        controls.update();
-      },
-    });
+      const proxy = {
+        angle: startAngle,
+        radius: startRadius,
+        y: startPosition.y,
+      };
 
-    return () => tl.kill();
-  }, [startPosition]);
+      gsap.to(proxy, {
+        angle: endAngle,
+        radius: endRadius,
+        y: defaultView.position.y,
+        duration: 3,
+        ease: "power2.inOut",
+        onUpdate: () => {
+          camera.position.x = Math.cos(proxy.angle) * proxy.radius;
+          camera.position.z = Math.sin(proxy.angle) * proxy.radius;
+          camera.position.y = proxy.y;
+          controls.target.set(
+            defaultView.lookAt.x,
+            defaultView.lookAt.y,
+            defaultView.lookAt.z,
+          );
+          controls.update();
+        },
+        onComplete: () => {
+          controls.target.set(
+            defaultView.lookAt.x,
+            defaultView.lookAt.y,
+            defaultView.lookAt.z,
+          );
+          controls.update();
+          controls.enabled = true;
+          if (onIntroComplete) onIntroComplete();
+        },
+      });
+    }
+  });
 
-  // regular camera transitions
   useEffect(() => {
     if (!targetPosition || !targetLookAt) return;
 
@@ -166,7 +185,6 @@ function CameraRig({
     );
   }, [targetPosition, targetLookAt]);
 
-  // debug overlay
   useFrame(() => {
     const el = document.getElementById("cam-debug");
     if (controlsRef.current && el) {
@@ -198,6 +216,7 @@ export default function CarViewer() {
   const [isSnapped, setIsSnapped] = useState(false);
   const [introPlaying, setIntroPlaying] = useState(true);
   const [introDone, setIntroDone] = useState(false);
+  const [modelLoaded, setModelLoaded] = useState(false);
   const carNameRef = useRef();
 
   const handleIntroComplete = () => {
@@ -265,8 +284,17 @@ export default function CarViewer() {
         </div>
       </div>
 
+      {/* loading screen */}
+      {!modelLoaded && (
+        <LoadingScreen
+          carName={currentCar.name}
+          brand={currentCar.brand}
+          accent={currentCar.intro.text.accent}
+        />
+      )}
+
       {/* intro overlay */}
-      {!introDone && (
+      {modelLoaded && !introDone && (
         <IntroOverlay
           carName={currentCar.name}
           carModel={currentCar.brand}
@@ -341,7 +369,12 @@ export default function CarViewer() {
         <ambientLight intensity={0.5} />
         <directionalLight position={[5, 5, 5]} intensity={1} />
 
-        <CarModel modelPath={currentCar.model} introPlaying={introPlaying} />
+        <Suspense fallback={null}>
+          <CarModel
+            modelPath={currentCar.model}
+            onLoaded={() => setModelLoaded(true)}
+          />
+        </Suspense>
 
         {introDone &&
           currentCar.hotspots

@@ -38,7 +38,7 @@ export default function IntroOverlay({ carName, carModel, onComplete }) {
         3.1,
       )
 
-      // sit for 0.7s then fade the big text out
+      // sit for 1s then fade the big text out
       .to(
         [modelRef.current, nameRef.current],
         {
@@ -50,7 +50,7 @@ export default function IntroOverlay({ carName, carModel, onComplete }) {
             if (onComplete) onComplete();
           },
         },
-        3.8,
+        4.1,
       );
 
     return () => tl.kill();
