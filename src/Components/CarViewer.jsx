@@ -351,7 +351,7 @@ export default function CarViewer() {
       )}
 
       {introDone && <BottomTiles car={currentCar} visible={!isDragging} />}
-      {/* debug overlay */}
+      {/* debug overlay
       <div
         id="cam-debug"
         style={{
@@ -368,7 +368,7 @@ export default function CarViewer() {
           whiteSpace: "pre",
           pointerEvents: "none",
         }}
-      />
+      /> */}
 
       <div className="absolute top-5 right-5 z-10 flex gap-1.5">
         {Object.keys(currentCar.views).map((key) => (
