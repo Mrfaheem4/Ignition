@@ -79,26 +79,6 @@ const mercedesGT4 = {
       lookAt: { x: 0, y: 0.4, z: 0 },
     },
   },
-  hotspots: [
-    {
-      id: "front",
-      label: "Front",
-      position: { x: 0, y: 0.4, z: 2.3 },
-      view: "front",
-    },
-    {
-      id: "side",
-      label: "Side",
-      position: { x: 1.1, y: 0.5, z: 0.5 },
-      view: "side",
-    },
-    {
-      id: "rear",
-      label: "Rear",
-      position: { x: 0, y: 0.7, z: -2.3 },
-      view: "rear",
-    },
-  ],
 };
 
 // ─── Red Bull F1 (Lower/Longer Profile) ───────────────────────────────────────
@@ -171,26 +151,6 @@ const redbull_f1 = {
       lookAt: { x: 0, y: 0.2, z: 0 },
     },
   },
-  hotspots: [
-    {
-      id: "front",
-      label: "Nose",
-      position: { x: 0, y: 0.5, z: 3.25 },
-      view: "front",
-    },
-    {
-      id: "side",
-      label: "Side",
-      position: { x: 0.8, y: 0.5, z: 0.5 },
-      view: "side",
-    },
-    {
-      id: "rear",
-      label: "Rear",
-      position: { x: 0, y: 0.5, z: -2.5 },
-      view: "rear",
-    },
-  ],
 };
 
 const koenigsegg = {
@@ -263,26 +223,6 @@ const koenigsegg = {
       lookAt: { x: 0, y: 0, z: 0 },
     },
   },
-  hotspots: [
-    {
-      id: "front",
-      label: "Front",
-      position: { x: 0, y: 0.05, z: 0.2 },
-      view: "front",
-    },
-    {
-      id: "side",
-      label: "Side",
-      position: { x: 0.1, y: 0.05, z: 0 },
-      view: "side",
-    },
-    {
-      id: "rear",
-      label: "Rear",
-      position: { x: 0, y: 0.1, z: -0.2 },
-      view: "rear",
-    },
-  ],
 };
 
 const volvo_polestar = {
@@ -356,26 +296,6 @@ const volvo_polestar = {
       lookAt: { x: 0, y: -0.14, z: -0.17 },
     },
   },
-  hotspots: [
-    {
-      id: "front",
-      label: "Front",
-      position: { x: 0, y: 0.3, z: 2.6 },
-      view: "front",
-    },
-    {
-      id: "side",
-      label: "Side",
-      position: { x: 1.2, y: 0.3, z: 0 },
-      view: "side",
-    },
-    {
-      id: "rear",
-      label: "Rear",
-      position: { x: 0, y: 0.55, z: -2.6 },
-      view: "rear",
-    },
-  ],
 };
 
 // ─── Ken Block Hoonicorn (Wide/Agressive) ─────────────────────────────────────
@@ -450,26 +370,6 @@ const hoonicorn = {
       lookAt: { x: 0, y: 0.5, z: 2.5 },
     },
   },
-  hotspots: [
-    {
-      id: "front",
-      label: "Front",
-      position: { x: 0, y: 2.5, z: 10 },
-      view: "front",
-    },
-    {
-      id: "side",
-      label: "Side",
-      position: { x: 1.2, y: 0.4, z: 1.2 },
-      view: "side",
-    },
-    {
-      id: "rear",
-      label: "Rear",
-      position: { x: 0, y: 2.5, z: -3.5 },
-      view: "rear",
-    },
-  ],
 };
 
 // ─── Mercedes 300SL (Vintage/Narrow) ──────────────────────────────────────────
@@ -543,26 +443,6 @@ const mercedes_300sl = {
       lookAt: { x: 0, y: 0.5, z: 0 },
     },
   },
-  hotspots: [
-    {
-      id: "front",
-      label: "Grille",
-      position: { x: 4, y: 1.5, z: 0 },
-      view: "front",
-    },
-    {
-      id: "side",
-      label: "Door",
-      position: { x: 0.5, y: 0.8, z: 1.5 },
-      view: "side",
-    },
-    {
-      id: "rear",
-      label: "Trunk",
-      position: { x: -3, y: 1.5, z: 0 },
-      view: "rear",
-    },
-  ],
 };
 
 const mclaren_f1_gtr = {
@@ -636,26 +516,6 @@ const mclaren_f1_gtr = {
       lookAt: { x: 0, y: 0.5, z: 0 },
     },
   },
-  hotspots: [
-    {
-      id: "front",
-      label: "Grille",
-      position: { x: 4, y: 1.5, z: 0 },
-      view: "front",
-    },
-    {
-      id: "side",
-      label: "Door",
-      position: { x: 0.5, y: 0.8, z: 1.5 },
-      view: "side",
-    },
-    {
-      id: "rear",
-      label: "Trunk",
-      position: { x: -3, y: 1.5, z: 0 },
-      view: "rear",
-    },
-  ],
 };
 
 // ─── Export ───────────────────────────────────────────────────────────────────

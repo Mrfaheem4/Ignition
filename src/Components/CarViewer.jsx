@@ -183,6 +183,7 @@ export default function CarViewer() {
   const [showLoading, setShowLoading] = useState(true);
   const carNameRef = useRef();
   const introCompletedRef = useRef(false);
+  const hotspotJustClickedRef = useRef(false);
 
   const handleIntroComplete = () => {
     if (introCompletedRef.current) return;
@@ -202,6 +203,10 @@ export default function CarViewer() {
   }, [modelLoaded]);
 
   const handleUserInteract = () => {
+    if (hotspotJustClickedRef.current) {
+      hotspotJustClickedRef.current = false;
+      return;
+    }
     setIsDragging(true);
     setIsSnapped(false);
     setActiveHotspot(null);
@@ -209,12 +214,12 @@ export default function CarViewer() {
       handleIntroComplete();
     }
   };
-
   const handleUserStopInteract = () => {
     setIsDragging(false);
   };
 
   const handleViewClick = (key) => {
+    hotspotJustClickedRef.current = true;
     setTarget({ ...currentCar.views[key] });
     setActiveView(key);
     setIsSnapped(true);
@@ -223,7 +228,7 @@ export default function CarViewer() {
   };
 
   return (
-    <div className="w-screen h-screen bg-[#0a0a0a] relative overflow-hidden">
+    <div className="w-screen h-screen bg-[#1b1a1a] ">
       <style>{`
         @keyframes pulse {
           0%   { transform: scale(1);   opacity: 0.8; }
@@ -318,6 +323,7 @@ export default function CarViewer() {
                   setActiveView(h.id);
                   setIsSnapped(true);
                   setActiveHotspot(h);
+                  setTargetKey((prev) => prev + 1);
                 }}
               />
             ))}
