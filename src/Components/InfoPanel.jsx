@@ -1,11 +1,17 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 
-export default function InfoPanel({ hotspot, accent, onClose, visible }) {
+export default function InfoPanel({
+  hotspot,
+  accent,
+  onClose,
+  visible,
+  logoSrc,
+  carName,
+}) {
   const panelRef = useRef();
 
   useEffect(() => {
-    console.log("InfoPanel effect:", visible, hotspot?.label);
     if (!panelRef.current) return;
     if (visible && hotspot) {
       gsap.fromTo(
@@ -26,38 +32,56 @@ export default function InfoPanel({ hotspot, accent, onClose, visible }) {
   return (
     <div
       ref={panelRef}
-      className="fixed top-24 right-6 z-40 w-72"
+      className="fixed top-24 right-6 z-40 w-72 flex flex-col gap-2"
       style={{ opacity: 1 }}
     >
+      {/* Logo + Car Name Card */}
+      <div className="bg-white/70 backdrop-blur-md border border-black/5 rounded-2xl px-4 py-3 flex items-center gap-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-black/25">
+            Brand
+          </p>
+          <p className="text-[13px] font-bold text-black leading-tight">
+            {carName ?? "Mercedes-Benz"}
+          </p>
+        </div>
+      </div>
+
+      {/* Hotspot Info Card */}
       {hotspot?.info && (
-        <div
-          className="bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl p-5"
-          style={{ borderLeft: `2px solid white` }}
-        >
+        <div className="bg-white/70 backdrop-blur-md border border-black/5 rounded-2xl p-5">
           {/* header */}
           <div className="flex items-start justify-between mb-3">
-            <div
-              className="text-xs font-medium tracking-widest uppercase"
-              style={{ color: "white" }}
-            >
-              {hotspot.label}
+            <div className="flex items-center gap-1.5">
+              <div className="w-1 h-1 rounded-full bg-black/25" />
+              <span className="text-[10px] font-semibold tracking-widest uppercase text-black/30">
+                {hotspot.label}
+              </span>
             </div>
             <button
               onClick={onClose}
-              className="text-white/40 hover:text-white/80 transition-colors text-lg leading-none -mt-0.5"
+              className="text-black/20 hover:text-black/60 transition-colors text-lg leading-none -mt-0.5"
             >
               ×
             </button>
           </div>
 
           {/* title */}
-          <div className="text-white font-semibold text-base leading-snug mb-2">
+          <div className="text-black font-bold text-[15px] leading-snug mb-2">
             {hotspot.info.title}
           </div>
 
           {/* description */}
-          <div className="text-white/50 text-xs leading-relaxed">
+          <div className="text-black/45 text-[12px] leading-relaxed">
             {hotspot.info.description}
+          </div>
+
+          {/* subtle bottom tag */}
+          <div className="mt-4 pt-3 border-t border-black/5 flex items-center gap-1.5">
+            <div className="w-1 h-1 rounded-full bg-black/15" />
+            <span className="text-[9px] uppercase tracking-widest text-black/20 font-semibold">
+              Feature Detail
+            </span>
           </div>
         </div>
       )}

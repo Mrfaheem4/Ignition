@@ -1,7 +1,14 @@
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Environment, Html } from "@react-three/drei";
+import {
+  OrbitControls,
+  useGLTF,
+  Environment,
+  Html,
+  ContactShadows,
+} from "@react-three/drei";
 import { useRef, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import * as THREE from "three";
 import gsap from "gsap";
 import IntroOverlay from "./IntroOverlay";
 import LoadingScreen from "./LoadingScreen";
@@ -9,12 +16,26 @@ import cars from "../data/cars";
 import InfoPanel from "./InfoPanel";
 import BottomTiles from "./BottomTiles";
 
-function CarModel({ modelPath, onLoaded }) {
+function CarModel({ modelPath, onLoaded, position }) {
   const { scene } = useGLTF(modelPath);
+
   useEffect(() => {
+    scene.traverse((child) => {
+      if (child.isMesh) {
+        // Boosts the HDR reflections on the paint
+        child.material.envMapIntensity = 1.5;
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
+    });
     if (onLoaded) onLoaded();
-  }, [scene]);
-  return <primitive object={scene} />;
+  }, [scene, onLoaded]);
+
+  return (
+    <group position={position || [0, 0, 0]}>
+      <primitive object={scene} />
+    </group>
+  );
 }
 
 function Hotspot({ position, label, onClick }) {
@@ -23,17 +44,45 @@ function Hotspot({ position, label, onClick }) {
       <div
         onClick={onClick}
         className="relative flex items-center justify-center cursor-pointer"
-        style={{ width: 12, height: 12 }}
+        style={{ width: 14, height: 14 }}
       >
-        <div className="absolute inset-0 rounded-full border border-white/60 animate-ping" />
+        {/* Ping ring */}
         <div
-          className="absolute inset-0 rounded-full border border-white"
+          className="absolute inset-0 rounded-full animate-ping"
           style={{
-            background: "rgba(255,255,255,0.15)",
-            backdropFilter: "blur(4px)",
+            border: "1px solid rgba(255,255,255,0.6)",
+            animationDuration: "2.4s",
           }}
         />
-        <div className="absolute top-5 left-1/2 -translate-x-1/2 text-white text-[9px] tracking-widest uppercase whitespace-nowrap bg-black/50 px-1.5 py-0.5 rounded">
+        {/* Outer ring */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            border: "1px solid #ffffff",
+            background: "#000000",
+          }}
+        />
+        {/* Inner dot */}
+        <div
+          className="relative z-10 rounded-full"
+          style={{ width: 6, height: 6, background: "#ffffff" }}
+        />
+        {/* Label */}
+        <div
+          className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            top: 22,
+            whiteSpace: "nowrap",
+            fontSize: 9,
+            fontWeight: 500,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "#000000",
+            background: "#ffffff",
+            padding: "3px 7px",
+            borderRadius: 3,
+          }}
+        >
           {label}
         </div>
       </div>
@@ -156,6 +205,17 @@ function CameraRig({
     );
   }, [targetPosition, targetLookAt, targetKey]);
 
+  useFrame(() => {
+    const el = document.getElementById("cam-debug");
+    if (controlsRef.current && el) {
+      const pos = camera.position;
+      const tar = controlsRef.current.target;
+      el.innerText =
+        `position: { x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)} }\n` +
+        `target:   { x: ${tar.x.toFixed(2)}, y: ${tar.y.toFixed(2)}, z: ${tar.z.toFixed(2)} }`;
+    }
+  });
+
   return (
     <OrbitControls
       ref={controlsRef}
@@ -229,7 +289,7 @@ export default function CarViewer() {
   };
 
   return (
-    <div className="w-screen h-screen bg-[#1b1a1a] ">
+    <div className="w-screen h-screen bg-[#e7e5e5] ">
       <style>{`
         @keyframes pulse {
           0%   { transform: scale(1);   opacity: 0.8; }
@@ -237,7 +297,6 @@ export default function CarViewer() {
         }
       `}</style>
 
-      {/* back to home button */}
       <button
         onClick={() => navigate("/showroom")}
         className="absolute top-6 left-6 z-50 text-sm tracking-[0.2em] uppercase text-gray-400 hover:text-white transition-colors pointer-events-auto"
@@ -245,23 +304,32 @@ export default function CarViewer() {
         ← Back to Collection
       </button>
 
-      {/* permanent car name top left */}
       <div
         ref={carNameRef}
         className="absolute top-16 left-6 z-30 pointer-events-none opacity-0"
       >
-        <div className="text-[10px] tracking-[0.3em] uppercase text-white/40 mb-0.5">
+        {/* Brand */}
+        <div className="text-[10px] tracking-[0.3em] uppercase text-black/40 mb-0.5">
           {currentCar.brand}
         </div>
-        <div className="text-base tracking-[0.15em] uppercase font-semibold text-white">
+
+        {/* Car Name */}
+        <div className="text-base tracking-[0.15em] uppercase font-semibold text-black">
           {currentCar.name}
+        </div>
+
+        {/* Logo Container */}
+        <div className="mt-8">
+          <img
+            src={`/logos/${currentCar.id}.png`}
+            alt={`${currentCar.brand} logo`}
+            className="h-20 w-auto object-contain"
+          />
         </div>
       </div>
 
-      {/* loading screen */}
       {showLoading && <LoadingScreen />}
 
-      {/* intro overlay */}
       {modelLoaded && !introDone && (
         <IntroOverlay
           carName={currentCar.name}
@@ -271,30 +339,48 @@ export default function CarViewer() {
         />
       )}
 
-      {/* info panel */}
       {introDone && (
         <InfoPanel
           hotspot={activeHotspot}
           accent={currentCar.intro.text.accent}
           onClose={() => setActiveHotspot(null)}
           visible={!!activeHotspot && !isDragging}
+          logoSrc={`/logos/${currentCar.id}.png`}
+          carName={currentCar.brand}
         />
       )}
 
-      {/* bottom tiles */}
       {introDone && <BottomTiles car={currentCar} visible={!isDragging} />}
+      {/* debug overlay */}
+      <div
+        id="cam-debug"
+        style={{
+          position: "absolute",
+          bottom: 20,
+          left: 20,
+          zIndex: 100,
+          color: "lime",
+          fontFamily: "monospace",
+          fontSize: 12,
+          background: "rgba(0,0,0,0.6)",
+          padding: "8px 12px",
+          borderRadius: 6,
+          whiteSpace: "pre",
+          pointerEvents: "none",
+        }}
+      />
 
-      {/* temp view buttons */}
-      <div className="absolute top-5 right-5 z-10 flex gap-2">
+      <div className="absolute top-5 right-5 z-10 flex gap-1.5">
         {Object.keys(currentCar.views).map((key) => (
           <button
             key={key}
             onClick={() => handleViewClick(key)}
-            className={`px-4 py-2 text-white text-sm border border-white/25 rounded-md transition-colors ${
-              activeView === key && isSnapped
-                ? "bg-white/25"
-                : "bg-white/10 hover:bg-white/15"
-            }`}
+            className={`px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest rounded-full transition-all duration-200 border border-black/
+        ${
+          activeView === key && isSnapped
+            ? "bg-black/70 text-white border-black/40 backdrop-blur-md"
+            : "bg-white/10 text-black/50 border-white/30 backdrop-blur-sm hover:bg-white/20 hover:text-black/70"
+        }`}
           >
             {key}
           </button>
@@ -302,6 +388,12 @@ export default function CarViewer() {
       </div>
 
       <Canvas
+        gl={{
+          antialias: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.2,
+          outputColorSpace: THREE.SRGBColorSpace,
+        }}
         camera={{
           position: [
             currentCar.intro.startPosition.x,
@@ -311,12 +403,28 @@ export default function CarViewer() {
           fov: 35,
         }}
       >
-        <ambientLight intensity={0.5} />
-        <directionalLight position={[5, 5, 5]} intensity={1} />
+        {/* Swapped default lights for HDR environment */}
+        <Environment files="/concrete_1.hdr" background={false} />
 
         <CarModel
           modelPath={currentCar.model}
+          position={
+            currentCar.modelPosition && [
+              currentCar.modelPosition.x,
+              currentCar.modelPosition.y,
+              currentCar.modelPosition.z,
+            ]
+          }
           onLoaded={() => setModelLoaded(true)}
+        />
+
+        {/* Added Contact Shadows for grounding */}
+        <ContactShadows
+          position={[0, -0.01, 0]}
+          opacity={1}
+          scale={20}
+          blur={1.5}
+          far={5}
         />
 
         {introDone &&
@@ -347,7 +455,6 @@ export default function CarViewer() {
           defaultView={currentCar.views.default}
           onIntroComplete={handleIntroComplete}
         />
-        <Environment preset="city" />
       </Canvas>
     </div>
   );

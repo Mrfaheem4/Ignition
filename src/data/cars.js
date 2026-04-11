@@ -231,6 +231,7 @@ const volvo_polestar = {
   name: "Polestar 2",
   brand: "Volvo",
   model: "/volvo_polestar.glb",
+  modelPosition: { x: 0, y: 0.5, z: 0 },
   engine:
     "2.0L Turbo Hybrid I4 \n2 electric motors and ISG \n626 bhp (467 kW) @ 5800 - 6100 rpm",
   torque: "738 lb⋅ft (1001 N·m) @ 4500 rpm",
@@ -280,19 +281,19 @@ const volvo_polestar = {
   },
   views: {
     default: {
-      position: { x: 4.95, y: 0.9, z: 6.57 },
+      position: { x: 4.67, y: 1.65, z: 5.64 },
       lookAt: { x: 0, y: 0.27, z: 0.12 },
     },
     front: {
-      position: { x: -0.04, y: 0.33, z: 8.2 },
+      position: { x: -0.07, y: 1.15, z: 7.44 },
       lookAt: { x: 0.07, y: 0.17, z: -0.01 },
     },
     side: {
-      position: { x: 8.17, y: 0.86, z: 0 },
+      position: { x: 7.34, y: 0.86, z: 0 },
       lookAt: { x: -0.01, y: 0.21, z: -0.01 },
     },
     rear: {
-      position: { x: 0, y: 1.54, z: -8.38 },
+      position: { x: 0, y: 2.45, z: -7.04 },
       lookAt: { x: 0, y: -0.14, z: -0.17 },
     },
   },
@@ -461,7 +462,7 @@ const mclaren_f1_gtr = {
     {
       id: "front",
       label: "Front",
-      position: { x: 4, y: 1.5, z: 0 },
+      position: { x: 0, y: 2.5, z: 25 },
       view: "front",
       info: {
         title: "GTR Front Splitter & Canards",
@@ -472,7 +473,7 @@ const mclaren_f1_gtr = {
     {
       id: "side",
       label: "Side",
-      position: { x: 0.5, y: 0.8, z: 1.5 },
+      position: { x: 10, y: 2.5, z: 1.5 },
       view: "side",
       info: {
         title: "Central Driving Position",
@@ -483,7 +484,7 @@ const mclaren_f1_gtr = {
     {
       id: "rear",
       label: "Rear",
-      position: { x: -3, y: 1.5, z: 0 },
+      position: { x: 0, y: 5, z: -25 },
       view: "rear",
       info: {
         title: "BMW V12 & GTR Diffuser",
@@ -518,6 +519,79 @@ const mclaren_f1_gtr = {
   },
 };
 
+const jeep_wrangler = {
+  ...baseCarConfig,
+  id: "jeep_wrangler",
+  name: "Wrangler",
+  brand: "Jeep",
+  model: "/jeep_wrangler.glb",
+
+  engine: "6.4L HEMI V8 (392 cubic inches)",
+  torque: "470 lb-ft (637 Nm)",
+  topspeed: "111 mph (179 km/h) — *Electronic Limit / Tire Rating*",
+  transmission: "8-speed TorqueFlite Automatic with Paddle Shifters",
+  zeroTo60: "4.5 seconds",
+  hotspots: [
+    {
+      id: "front",
+      label: "Front",
+      position: { x: 0, y: 1, z: 2.5 },
+      view: "front",
+      info: {
+        title: "Hydro-Guide Air Intake",
+        description:
+          "The functional hood scoop uses a Tri-Level Hydro-Guide system to separate water from air, allowing the engine to breathe even when waves break over the hood during water fording.",
+      },
+    },
+    {
+      id: "side",
+      label: "Side",
+      position: { x: 1.3, y: 1, z: 0 },
+      view: "side",
+      info: {
+        title: "FOX Shocks & Lift",
+        description:
+          "Equipped with a factory 2-inch lift and FOX 2.0-inch diameter aluminum-bodied monotube shocks, tuned specifically to handle the weight of the V8 while maximizing off-road articulation.",
+      },
+    },
+    {
+      id: "rear",
+      label: "Rear",
+      position: { x: 0, y: 1.5, z: -2.5 },
+      view: "rear",
+      info: {
+        title: "Dual-Mode Active Exhaust",
+        description:
+          "Features a quad-tip exhaust system with a 'Performance' mode. At the push of a button, valves bypass the main muffler to unleash the signature deep roar of the naturally aspirated HEMI V8.",
+      },
+    },
+  ],
+
+  intro: {
+    ...baseCarConfig.intro,
+    startPosition: { x: 5.17, y: 1.58, z: 3.09 },
+    text: { style: "fade", accent: "#c0c0c0" },
+  },
+  views: {
+    default: {
+      position: { x: 5.17, y: 1.58, z: 3.09 },
+      lookAt: { x: 0, y: 0.5, z: 0 },
+    },
+    front: {
+      position: { x: 0, y: 1.79, z: 5.97 },
+      lookAt: { x: 0, y: 0.5, z: 0 },
+    },
+    side: {
+      position: { x: 5.48, y: 1.21, z: 0 },
+      lookAt: { x: 0, y: 0.5, z: 0 },
+    },
+    rear: {
+      position: { x: 0, y: 2.3, z: -5.83 },
+      lookAt: { x: 0, y: 0.5, z: 0 },
+    },
+  },
+};
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 const cars = [
   mercedesGT4,
@@ -527,5 +601,6 @@ const cars = [
   mercedes_300sl,
   koenigsegg,
   mclaren_f1_gtr,
+  jeep_wrangler,
 ];
 export default cars;
