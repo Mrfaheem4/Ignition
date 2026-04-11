@@ -1,7 +1,7 @@
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment, Html } from "@react-three/drei";
 import { useRef, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import gsap from "gsap";
 import IntroOverlay from "./IntroOverlay";
 import LoadingScreen from "./LoadingScreen";
@@ -170,6 +170,7 @@ function CameraRig({
 
 export default function CarViewer() {
   const { carId } = useParams();
+  const navigate = useNavigate();
   const currentCar = cars.find((c) => c.id === carId) || cars[0];
 
   const [target, setTarget] = useState(null);
@@ -236,10 +237,18 @@ export default function CarViewer() {
         }
       `}</style>
 
+      {/* back to home button */}
+      <button
+        onClick={() => navigate("/showroom")}
+        className="absolute top-6 left-6 z-50 text-sm tracking-[0.2em] uppercase text-gray-400 hover:text-white transition-colors pointer-events-auto"
+      >
+        ← Back to Collection
+      </button>
+
       {/* permanent car name top left */}
       <div
         ref={carNameRef}
-        className="absolute top-6 left-6 z-30 pointer-events-none opacity-0"
+        className="absolute top-16 left-6 z-30 pointer-events-none opacity-0"
       >
         <div className="text-[10px] tracking-[0.3em] uppercase text-white/40 mb-0.5">
           {currentCar.brand}

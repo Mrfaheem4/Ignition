@@ -32,13 +32,13 @@ export default function InfoPanel({ hotspot, accent, onClose, visible }) {
       {hotspot?.info && (
         <div
           className="bg-black/60 backdrop-blur-md border border-white/10 rounded-2xl p-5"
-          style={{ borderLeft: `2px solid ${accent}` }}
+          style={{ borderLeft: `2px solid white` }}
         >
           {/* header */}
           <div className="flex items-start justify-between mb-3">
             <div
               className="text-xs font-medium tracking-widest uppercase"
-              style={{ color: accent }}
+              style={{ color: "white" }}
             >
               {hotspot.label}
             </div>
