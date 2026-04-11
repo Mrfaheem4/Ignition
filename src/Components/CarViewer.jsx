@@ -1,6 +1,6 @@
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, useGLTF, Environment, Html } from "@react-three/drei";
-import { useRef, useEffect, useState, Suspense } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import gsap from "gsap";
 import IntroOverlay from "./IntroOverlay";
@@ -11,11 +11,9 @@ import BottomTiles from "./BottomTiles";
 
 function CarModel({ modelPath, onLoaded }) {
   const { scene } = useGLTF(modelPath);
-
   useEffect(() => {
     if (onLoaded) onLoaded();
   }, [scene]);
-
   return <primitive object={scene} />;
 }
 
@@ -24,47 +22,18 @@ function Hotspot({ position, label, onClick }) {
     <Html position={[position.x, position.y, position.z]} center>
       <div
         onClick={onClick}
-        style={{
-          width: 12,
-          height: 12,
-          borderRadius: "50%",
-          border: "1.5px solid white",
-          background: "rgba(255,255,255,0.15)",
-          backdropFilter: "blur(4px)",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-        }}
+        className="relative flex items-center justify-center cursor-pointer"
+        style={{ width: 12, height: 12 }}
       >
+        <div className="absolute inset-0 rounded-full border border-white/60 animate-ping" />
         <div
+          className="absolute inset-0 rounded-full border border-white"
           style={{
-            position: "absolute",
-            width: 12,
-            height: 12,
-            borderRadius: "50%",
-            border: "1.5px solid rgba(255,255,255,0.6)",
-            animation: "pulse 1.8s ease-out infinite",
+            background: "rgba(255,255,255,0.15)",
+            backdropFilter: "blur(4px)",
           }}
         />
-        <div
-          style={{
-            position: "absolute",
-            top: 18,
-            left: "50%",
-            transform: "translateX(-50%)",
-            color: "white",
-            fontSize: 9,
-            whiteSpace: "nowrap",
-            fontFamily: "sans-serif",
-            letterSpacing: "0.05em",
-            textTransform: "uppercase",
-            background: "rgba(0,0,0,0.5)",
-            padding: "2px 6px",
-            borderRadius: 4,
-          }}
-        >
+        <div className="absolute top-5 left-1/2 -translate-x-1/2 text-white text-[9px] tracking-widest uppercase whitespace-nowrap bg-black/50 px-1.5 py-0.5 rounded">
           {label}
         </div>
       </div>
@@ -75,6 +44,7 @@ function Hotspot({ position, label, onClick }) {
 function CameraRig({
   targetPosition,
   targetLookAt,
+  targetKey,
   onUserInteract,
   onUserStopInteract,
   startPosition,
@@ -184,7 +154,7 @@ function CameraRig({
       },
       0,
     );
-  }, [targetPosition, targetLookAt]);
+  }, [targetPosition, targetLookAt, targetKey]);
 
   return (
     <OrbitControls
@@ -203,20 +173,20 @@ export default function CarViewer() {
   const currentCar = cars.find((c) => c.id === carId) || cars[0];
 
   const [target, setTarget] = useState(null);
+  const [targetKey, setTargetKey] = useState(0);
   const [activeView, setActiveView] = useState("default");
   const [activeHotspot, setActiveHotspot] = useState(null);
   const [isSnapped, setIsSnapped] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [introPlaying, setIntroPlaying] = useState(true);
   const [introDone, setIntroDone] = useState(false);
   const [modelLoaded, setModelLoaded] = useState(false);
+  const [showLoading, setShowLoading] = useState(true);
   const carNameRef = useRef();
   const introCompletedRef = useRef(false);
 
   const handleIntroComplete = () => {
     if (introCompletedRef.current) return;
     introCompletedRef.current = true;
-    setIntroPlaying(false);
     setIntroDone(true);
     gsap.fromTo(
       carNameRef.current,
@@ -224,15 +194,19 @@ export default function CarViewer() {
       { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" },
     );
   };
+  useEffect(() => {
+    if (modelLoaded) {
+      const timer = setTimeout(() => setShowLoading(false), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [modelLoaded]);
 
   const handleUserInteract = () => {
     setIsDragging(true);
     setIsSnapped(false);
     setActiveHotspot(null);
     if (!introDone) {
-      setIntroPlaying(false);
-      setIntroDone(true);
-      gsap.to(carNameRef.current, { opacity: 1, x: 0, duration: 0.3 });
+      handleIntroComplete();
     }
   };
 
@@ -240,8 +214,16 @@ export default function CarViewer() {
     setIsDragging(false);
   };
 
+  const handleViewClick = (key) => {
+    setTarget({ ...currentCar.views[key] });
+    setActiveView(key);
+    setIsSnapped(true);
+    setActiveHotspot(null);
+    setTargetKey((prev) => prev + 1);
+  };
+
   return (
-    <div style={{ width: "100vw", height: "100vh", background: "#0a0a0a" }}>
+    <div className="w-screen h-screen bg-[#0a0a0a] relative overflow-hidden">
       <style>{`
         @keyframes pulse {
           0%   { transform: scale(1);   opacity: 0.8; }
@@ -252,48 +234,18 @@ export default function CarViewer() {
       {/* permanent car name top left */}
       <div
         ref={carNameRef}
-        style={{
-          position: "absolute",
-          top: 24,
-          left: 24,
-          zIndex: 30,
-          opacity: 0,
-          color: "white",
-          fontFamily: "sans-serif",
-          pointerEvents: "none",
-        }}
+        className="absolute top-6 left-6 z-30 pointer-events-none opacity-0"
       >
-        <div
-          style={{
-            fontSize: 10,
-            letterSpacing: "0.3em",
-            textTransform: "uppercase",
-            color: "rgba(255,255,255,0.5)",
-            marginBottom: 2,
-          }}
-        >
+        <div className="text-[10px] tracking-[0.3em] uppercase text-white/40 mb-0.5">
           {currentCar.brand}
         </div>
-        <div
-          style={{
-            fontSize: 16,
-            letterSpacing: "0.15em",
-            textTransform: "uppercase",
-            fontWeight: 600,
-          }}
-        >
+        <div className="text-base tracking-[0.15em] uppercase font-semibold text-white">
           {currentCar.name}
         </div>
       </div>
 
       {/* loading screen */}
-      {!modelLoaded && (
-        <LoadingScreen
-          carName={currentCar.name}
-          brand={currentCar.brand}
-          accent={currentCar.intro.text.accent}
-        />
-      )}
+      {showLoading && <LoadingScreen />}
 
       {/* intro overlay */}
       {modelLoaded && !introDone && (
@@ -301,10 +253,10 @@ export default function CarViewer() {
           carName={currentCar.name}
           carModel={currentCar.brand}
           accent={currentCar.intro.text.accent}
-          style={currentCar.intro.text.style}
           onComplete={handleIntroComplete}
         />
       )}
+
       {/* info panel */}
       {introDone && (
         <InfoPanel
@@ -319,32 +271,16 @@ export default function CarViewer() {
       {introDone && <BottomTiles car={currentCar} visible={!isDragging} />}
 
       {/* temp view buttons */}
-      <div
-        style={{
-          position: "absolute",
-          zIndex: 10,
-          top: 20,
-          right: 20,
-          display: "flex",
-          gap: 10,
-        }}
-      >
+      <div className="absolute top-5 right-5 z-10 flex gap-2">
         {Object.keys(currentCar.views).map((key) => (
           <button
             key={key}
-            onClick={() => {
-              setTarget(currentCar.views[key]);
-              setActiveView(key);
-              setIsSnapped(true);
-            }}
-            style={{
-              padding: "8px 16px",
-              background: activeView === key ? "#ffffff40" : "#ffffff20",
-              color: "white",
-              border: "1px solid #ffffff40",
-              borderRadius: 6,
-              cursor: "pointer",
-            }}
+            onClick={() => handleViewClick(key)}
+            className={`px-4 py-2 text-white text-sm border border-white/25 rounded-md transition-colors ${
+              activeView === key && isSnapped
+                ? "bg-white/25"
+                : "bg-white/10 hover:bg-white/15"
+            }`}
           >
             {key}
           </button>
@@ -378,7 +314,7 @@ export default function CarViewer() {
                 position={h.position}
                 label={h.label}
                 onClick={() => {
-                  setTarget(currentCar.views[h.view]);
+                  setTarget({ ...currentCar.views[h.view] });
                   setActiveView(h.id);
                   setIsSnapped(true);
                   setActiveHotspot(h);
@@ -389,6 +325,7 @@ export default function CarViewer() {
         <CameraRig
           targetPosition={target?.position}
           targetLookAt={target?.lookAt}
+          targetKey={targetKey}
           onUserInteract={handleUserInteract}
           onUserStopInteract={handleUserStopInteract}
           startPosition={currentCar.intro.startPosition}

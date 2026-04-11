@@ -7,13 +7,13 @@ export default function IntroOverlay({
   accent,
   onComplete,
 }) {
-  const overlayRef = useRef();
   const modelRef = useRef();
   const nameRef = useRef();
 
   useEffect(() => {
     const tl = gsap.timeline();
 
+    // Initial State
     gsap.set([modelRef.current, nameRef.current], { opacity: 0, y: 20 });
 
     tl.to(
@@ -26,7 +26,6 @@ export default function IntroOverlay({
       },
       0.3,
     )
-
       .to(
         nameRef.current,
         {
@@ -37,7 +36,6 @@ export default function IntroOverlay({
         },
         0.6,
       )
-
       .to(
         [modelRef.current, nameRef.current],
         {
@@ -53,82 +51,25 @@ export default function IntroOverlay({
       );
 
     return () => tl.kill();
-  }, []);
-
-  const handleSkip = () => {
-    gsap.killTweensOf([modelRef.current, nameRef.current]);
-    gsap.to([modelRef.current, nameRef.current], {
-      opacity: 0,
-      duration: 0.3,
-      onComplete: () => {
-        if (onComplete) onComplete();
-      },
-    });
-  };
+  }, [onComplete]);
 
   return (
-    <div
-      ref={overlayRef}
-      style={{
-        position: "absolute",
-        inset: 0,
-        zIndex: 20,
-        pointerEvents: "none",
-        background: "transparent",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-      }}
-    >
+    <div className="absolute inset-0 z-20 pointer-events-none bg-transparent flex flex-col items-center justify-center gap-2">
+      {/* Car Model (Subheader) */}
       <div
         ref={modelRef}
-        style={{
-          color: accent || "rgba(255,255,255,0.6)",
-          fontSize: 13,
-          fontFamily: "sans-serif",
-          letterSpacing: "0.4em",
-          textTransform: "uppercase",
-          fontWeight: 300,
-        }}
+        style={{ color: accent || "rgba(255,255,255,0.6)" }}
+        className="text-[13px] font-sans tracking-[0.4em] uppercase font-light"
       >
         {carModel}
       </div>
 
+      {/* Car Name (Main Title) */}
       <div
         ref={nameRef}
-        style={{
-          color: "white",
-          fontSize: 72,
-          fontFamily: "sans-serif",
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          fontWeight: 700,
-          lineHeight: 1,
-        }}
+        className="text-white text-6xl md:text-7xl font-sans tracking-[0.08em] uppercase font-bold leading-none"
       >
         {carName}
-      </div>
-
-      <div
-        onClick={handleSkip}
-        style={{
-          position: "absolute",
-          bottom: 32,
-          right: 32,
-          color: "rgba(255,255,255,0.4)",
-          fontSize: 11,
-          fontFamily: "sans-serif",
-          letterSpacing: "0.2em",
-          textTransform: "uppercase",
-          cursor: "pointer",
-          pointerEvents: "all",
-          borderBottom: "1px solid rgba(255,255,255,0.2)",
-          paddingBottom: 2,
-        }}
-      >
-        skip
       </div>
     </div>
   );

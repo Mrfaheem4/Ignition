@@ -340,20 +340,20 @@ const volvo_polestar = {
   },
   views: {
     default: {
-      position: { x: 4.16, y: 1.14, z: 7.07 },
-      lookAt: { x: 0, y: 0.7, z: 0 },
+      position: { x: 4.95, y: 0.9, z: 6.57 },
+      lookAt: { x: 0, y: 0.27, z: 0.12 },
     },
     front: {
-      position: { x: 0, y: 0.52, z: 8.21 },
-      lookAt: { x: 0, y: 0.7, z: 0 },
+      position: { x: -0.04, y: 0.33, z: 8.2 },
+      lookAt: { x: 0.07, y: 0.17, z: -0.01 },
     },
     side: {
-      position: { x: 8.2, y: 0.5, z: 0.06 },
-      lookAt: { x: 0, y: 0.7, z: 0 },
+      position: { x: 8.17, y: 0.86, z: 0 },
+      lookAt: { x: -0.01, y: 0.21, z: -0.01 },
     },
     rear: {
-      position: { x: 0, y: 2.38, z: -8.21 },
-      lookAt: { x: 0, y: 0.7, z: 0 },
+      position: { x: 0, y: 1.54, z: -8.38 },
+      lookAt: { x: 0, y: -0.14, z: -0.17 },
     },
   },
   hotspots: [

@@ -47,9 +47,9 @@ export default function BottomTiles({ car, visible }) {
         {tiles.map((tile, i) => (
           <div
             key={i}
-            className="flex-1 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 flex flex-col items-center justify-center text-center"
+            className="flex-1 bg-zinc-900/50 border  border-white/40 rounded-xl p-4 flex flex-col items-center justify-center text-center"
           >
-            <div className="text-white/50 text-xs tracking-widest uppercase mb-2 leading-relaxed">
+            <div className="text-white/50 text-xs tracking-widest uppercase mb-2 leading-relaxed font-bold">
               {tile.label}
             </div>
             <div className="text-white text-sm font-semibold leading-snug">
