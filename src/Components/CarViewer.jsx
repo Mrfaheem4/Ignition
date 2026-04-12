@@ -40,6 +40,25 @@ function CarModel({ modelPath, onLoaded, position }) {
     if (onLoaded) onLoaded();
   }, [scene, onLoaded]);
 
+  // Cleanup function to handle context loss gracefully
+  useEffect(() => {
+    return () => {
+      // Properly dispose of geometries and materials when unmounting
+      scene.traverse((child) => {
+        if (child.isMesh) {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach((m) => m.dispose());
+            } else {
+              child.material.dispose();
+            }
+          }
+        }
+      });
+    };
+  }, [scene]);
+
   return (
     <group position={position || [0, 0, 0]}>
       <primitive object={scene} />
@@ -260,6 +279,39 @@ export default function CarViewer() {
   const navigate = useNavigate();
   const currentCar = cars.find((c) => c.id === carId) || cars[0];
 
+  // Suppress expected WebGL context loss warnings during unmount
+  useEffect(() => {
+    const originalWarn = console.warn;
+    const originalLog = console.log;
+
+    const handleConsoleOutput = (args) => {
+      const message = args[0]?.toString() || "";
+      // Suppress expected warnings during navigation
+      if (
+        message.includes("WebGL context lost") ||
+        message.includes("Context Lost")
+      ) {
+        return;
+      }
+      return args;
+    };
+
+    console.warn = (...args) => {
+      const filtered = handleConsoleOutput(args);
+      if (filtered) originalWarn.apply(console, filtered);
+    };
+
+    console.log = (...args) => {
+      const filtered = handleConsoleOutput(args);
+      if (filtered) originalLog.apply(console, filtered);
+    };
+
+    return () => {
+      console.warn = originalWarn;
+      console.log = originalLog;
+    };
+  }, []);
+
   // Kick off GLTF fetch immediately on render, before Suspense even triggers
   useEffect(() => {
     preloadCar(currentCar);
@@ -280,6 +332,17 @@ export default function CarViewer() {
 
   // Use the ambient music hook - it will trigger once UI is fully loaded (intro done)
   const musicControls = useAmbientMusic(introDone);
+
+  // Reset state when car changes to ensure clean remount
+  useEffect(() => {
+    setIntroDone(false);
+    setModelLoaded(false);
+    setShowLoading(true);
+    introCompletedRef.current = false;
+    setActiveView("default");
+    setTarget(null);
+    setTargetKey(0);
+  }, [carId]);
 
   const handleIntroComplete = useCallback(() => {
     if (introCompletedRef.current) return;
@@ -447,6 +510,8 @@ export default function CarViewer() {
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.2,
           outputColorSpace: THREE.SRGBColorSpace,
+          preserveDrawingBuffer: true,
+          powerPreference: "high-performance",
         }}
         camera={{
           position: [

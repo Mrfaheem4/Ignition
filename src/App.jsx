@@ -6,8 +6,24 @@ const Home = lazy(() => import("./Components/Home.jsx"));
 const Showroom = lazy(() => import("./pages/Showroom.jsx"));
 const CarViewer = lazy(() => import("./Components/CarViewer.jsx"));
 
-// Wraps CarViewer in its own Suspense so the global one never
-// gets involved in CarViewer's lifecycle at all.
+// Wrap each route in its own Suspense to isolate loading states
+function HomeRoute() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <Home />
+    </Suspense>
+  );
+}
+
+function ShowroomRoute() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <Showroom />
+    </Suspense>
+  );
+}
+
+// CarViewer retains its own Suspense to prevent WebGL context loss
 function CarViewerRoute() {
   return (
     <Suspense fallback={<LoadingScreen />}>
@@ -19,15 +35,13 @@ function CarViewerRoute() {
 export default function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<LoadingScreen />}>
-        <Routes>
-          <Route path="/" element={<Navigate to="/home" />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/showroom" element={<Showroom />} />
-          <Route path="/showroom/:carId" element={<CarViewerRoute />} />
-          <Route path="/car/:carId" element={<CarViewerRoute />} />
-        </Routes>
-      </Suspense>
+      <Routes>
+        <Route path="/" element={<Navigate to="/home" />} />
+        <Route path="/home" element={<HomeRoute />} />
+        <Route path="/showroom" element={<ShowroomRoute />} />
+        <Route path="/showroom/:carId" element={<CarViewerRoute />} />
+        <Route path="/car/:carId" element={<CarViewerRoute />} />
+      </Routes>
     </BrowserRouter>
   );
 }
