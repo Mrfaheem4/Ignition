@@ -6,7 +6,7 @@ import {
   Html,
   ContactShadows,
 } from "@react-three/drei";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, Suspense, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import gsap from "gsap";
@@ -16,18 +16,25 @@ import cars from "../data/cars";
 import InfoPanel from "./InfoPanel";
 import BottomTiles from "./BottomTiles";
 
+// Preload is called outside the component so it fires immediately on module
+// load — the GLTF fetch starts before React even renders the Canvas.
+// Call this for every car you expect the user to visit.
+function preloadCar(car) {
+  useGLTF.preload(car.model);
+}
+
 function CarModel({ modelPath, onLoaded, position }) {
-  const { scene } = useGLTF(modelPath);
+  const { scene } = useGLTF(modelPath); // suspends until loaded
 
   useEffect(() => {
     scene.traverse((child) => {
       if (child.isMesh) {
-        // Boosts the HDR reflections on the paint
         child.material.envMapIntensity = 1.5;
         child.castShadow = true;
         child.receiveShadow = true;
       }
     });
+    // onLoaded fires after scene is ready — tells the DOM layer to hide LoadingScreen
     if (onLoaded) onLoaded();
   }, [scene, onLoaded]);
 
@@ -36,6 +43,14 @@ function CarModel({ modelPath, onLoaded, position }) {
       <primitive object={scene} />
     </group>
   );
+}
+
+// Thin R3F fallback rendered inside the Canvas while the GLTF suspends.
+// This keeps every useThree/useFrame consumer alive — no context loss.
+// Your real LoadingScreen is a separate DOM overlay (see below), this just
+// stops R3F from complaining about an empty scene.
+function CanvasFallback() {
+  return null; // Canvas stays mounted; DOM LoadingScreen handles the visual
 }
 
 function Hotspot({ position, label, onClick }) {
@@ -233,6 +248,11 @@ export default function CarViewer() {
   const navigate = useNavigate();
   const currentCar = cars.find((c) => c.id === carId) || cars[0];
 
+  // Kick off GLTF fetch immediately on render, before Suspense even triggers
+  useEffect(() => {
+    preloadCar(currentCar);
+  }, [currentCar]);
+
   const [target, setTarget] = useState(null);
   const [targetKey, setTargetKey] = useState(0);
   const [activeView, setActiveView] = useState("default");
@@ -246,7 +266,7 @@ export default function CarViewer() {
   const introCompletedRef = useRef(false);
   const hotspotJustClickedRef = useRef(false);
 
-  const handleIntroComplete = () => {
+  const handleIntroComplete = useCallback(() => {
     if (introCompletedRef.current) return;
     introCompletedRef.current = true;
     setIntroDone(true);
@@ -255,7 +275,8 @@ export default function CarViewer() {
       { opacity: 0, x: -10 },
       { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" },
     );
-  };
+  }, []);
+
   useEffect(() => {
     if (modelLoaded) {
       const timer = setTimeout(() => setShowLoading(false), 500);
@@ -263,7 +284,10 @@ export default function CarViewer() {
     }
   }, [modelLoaded]);
 
-  const handleUserInteract = () => {
+  // useCallback so CameraRig/Hotspot don't cause unnecessary re-renders
+  const handleModelLoaded = useCallback(() => setModelLoaded(true), []);
+
+  const handleUserInteract = useCallback(() => {
     if (hotspotJustClickedRef.current) {
       hotspotJustClickedRef.current = false;
       return;
@@ -274,22 +298,26 @@ export default function CarViewer() {
     if (!introDone) {
       handleIntroComplete();
     }
-  };
-  const handleUserStopInteract = () => {
-    setIsDragging(false);
-  };
+  }, [introDone, handleIntroComplete]);
 
-  const handleViewClick = (key) => {
-    hotspotJustClickedRef.current = true;
-    setTarget({ ...currentCar.views[key] });
-    setActiveView(key);
-    setIsSnapped(true);
-    setActiveHotspot(null);
-    setTargetKey((prev) => prev + 1);
-  };
+  const handleUserStopInteract = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleViewClick = useCallback(
+    (key) => {
+      hotspotJustClickedRef.current = true;
+      setTarget({ ...currentCar.views[key] });
+      setActiveView(key);
+      setIsSnapped(true);
+      setActiveHotspot(null);
+      setTargetKey((prev) => prev + 1);
+    },
+    [currentCar],
+  );
 
   return (
-    <div className="w-screen h-screen bg-[#e7e5e5] ">
+    <div className="w-screen h-screen bg-[#e7e5e5]">
       <style>{`
         @keyframes pulse {
           0%   { transform: scale(1);   opacity: 0.8; }
@@ -308,17 +336,12 @@ export default function CarViewer() {
         ref={carNameRef}
         className="absolute top-16 left-6 z-30 pointer-events-none opacity-0"
       >
-        {/* Brand */}
         <div className="text-[10px] tracking-[0.3em] uppercase text-black/40 mb-0.5">
           {currentCar.brand}
         </div>
-
-        {/* Car Name */}
         <div className="text-base tracking-[0.15em] uppercase font-semibold text-black">
           {currentCar.name}
         </div>
-
-        {/* Logo Container */}
         <div className="mt-8">
           <img
             src={`/logos/${currentCar.id}.png`}
@@ -328,6 +351,7 @@ export default function CarViewer() {
         </div>
       </div>
 
+      {/* DOM loading screen — controlled by modelLoaded state, independent of Suspense */}
       {showLoading && <LoadingScreen />}
 
       {modelLoaded && !introDone && (
@@ -351,8 +375,9 @@ export default function CarViewer() {
       )}
 
       {introDone && <BottomTiles car={currentCar} visible={!isDragging} />}
-      {/* debug overlay
-      <div
+
+      {/* debug overlay */}
+      {/* <div
         id="cam-debug"
         style={{
           position: "absolute",
@@ -403,22 +428,29 @@ export default function CarViewer() {
           fov: 35,
         }}
       >
-        {/* Swapped default lights for HDR environment */}
         <Environment files="/concrete_1.hdr" background={false} />
 
-        <CarModel
-          modelPath={currentCar.model}
-          position={
-            currentCar.modelPosition && [
-              currentCar.modelPosition.x,
-              currentCar.modelPosition.y,
-              currentCar.modelPosition.z,
-            ]
-          }
-          onLoaded={() => setModelLoaded(true)}
-        />
+        {/*
+          Suspense lives INSIDE Canvas — R3F context stays fully alive.
+          CanvasFallback renders nothing (null) so the scene stays mounted
+          while the GLTF loads. Your DOM LoadingScreen handles the visual.
+          Never put Suspense outside <Canvas> — useThree/useFrame will lose
+          their provider and throw.
+        */}
+        <Suspense fallback={<CanvasFallback />}>
+          <CarModel
+            modelPath={currentCar.model}
+            position={
+              currentCar.modelPosition && [
+                currentCar.modelPosition.x,
+                currentCar.modelPosition.y,
+                currentCar.modelPosition.z,
+              ]
+            }
+            onLoaded={handleModelLoaded}
+          />
+        </Suspense>
 
-        {/* Added Contact Shadows for grounding */}
         <ContactShadows
           position={[0, -0.01, 0]}
           opacity={1}
