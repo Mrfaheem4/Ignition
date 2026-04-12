@@ -153,9 +153,9 @@ const redbull_f1 = {
   },
 };
 
-const koenigsegg = {
+const koenigsegg_one = {
   ...baseCarConfig,
-  id: "koenigsegg",
+  id: "koenigsegg_one",
   name: "One",
   brand: "Koenigsegg",
   model: "/koenigsegg_one.glb",
@@ -599,7 +599,7 @@ const cars = [
   volvo_polestar,
   hoonicorn,
   mercedes_300sl,
-  koenigsegg,
+  koenigsegg_one,
   mclaren_f1_gtr,
   jeep_wrangler,
 ];

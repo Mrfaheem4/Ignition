@@ -115,11 +115,14 @@ function CameraRig({
   defaultView,
   onIntroComplete,
 }) {
-  const { camera } = useThree();
+  const { camera, invalidate } = useThree(); // invalidate tells R3F to draw a frame on demand
   const controlsRef = useRef();
   const introStarted = useRef(false);
 
+  // Merged into a single useFrame — two useFrame callbacks on the same
+  // component run sequentially but waste a hook slot each. One is cleaner.
   useFrame(() => {
+    // --- Intro spin (runs once on the first frame after controls mount) ---
     if (!introStarted.current && controlsRef.current) {
       introStarted.current = true;
 
@@ -165,6 +168,7 @@ function CameraRig({
             defaultView.lookAt.z,
           );
           controls.update();
+          invalidate(); // GSAP runs outside R3F — must tell it a frame is needed
         },
         onComplete: () => {
           controls.target.set(
@@ -178,6 +182,16 @@ function CameraRig({
         },
       });
     }
+
+    // --- Debug overlay (only active when the div exists in the DOM) ---
+    const el = document.getElementById("cam-debug");
+    if (controlsRef.current && el) {
+      const pos = camera.position;
+      const tar = controlsRef.current.target;
+      el.innerText =
+        `position: { x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)} }\n` +
+        `target:   { x: ${tar.x.toFixed(2)}, y: ${tar.y.toFixed(2)}, z: ${tar.z.toFixed(2)} }`;
+    }
   });
 
   useEffect(() => {
@@ -189,7 +203,10 @@ function CameraRig({
     controls.enabled = false;
 
     const tl = gsap.timeline({
-      onUpdate: () => controls.update(),
+      onUpdate: () => {
+        controls.update();
+        invalidate(); // each GSAP tick needs its own invalidate call
+      },
       onComplete: () => {
         controls.enabled = true;
       },
@@ -220,17 +237,6 @@ function CameraRig({
     );
   }, [targetPosition, targetLookAt, targetKey]);
 
-  useFrame(() => {
-    const el = document.getElementById("cam-debug");
-    if (controlsRef.current && el) {
-      const pos = camera.position;
-      const tar = controlsRef.current.target;
-      el.innerText =
-        `position: { x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)} }\n` +
-        `target:   { x: ${tar.x.toFixed(2)}, y: ${tar.y.toFixed(2)}, z: ${tar.z.toFixed(2)} }`;
-    }
-  });
-
   return (
     <OrbitControls
       ref={controlsRef}
@@ -239,6 +245,9 @@ function CameraRig({
       dampingFactor={0.05}
       onStart={onUserInteract}
       onEnd={onUserStopInteract}
+      // regress temporarily drops pixel ratio during interaction to maintain
+      // framerate on lower-end devices — R3F restores it automatically after
+      regress
     />
   );
 }
@@ -430,13 +439,6 @@ export default function CarViewer() {
       >
         <Environment files="/concrete_1.hdr" background={false} />
 
-        {/*
-          Suspense lives INSIDE Canvas — R3F context stays fully alive.
-          CanvasFallback renders nothing (null) so the scene stays mounted
-          while the GLTF loads. Your DOM LoadingScreen handles the visual.
-          Never put Suspense outside <Canvas> — useThree/useFrame will lose
-          their provider and throw.
-        */}
         <Suspense fallback={<CanvasFallback />}>
           <CarModel
             modelPath={currentCar.model}
