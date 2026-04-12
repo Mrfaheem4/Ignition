@@ -279,7 +279,7 @@ export default function CarViewer() {
   const hotspotJustClickedRef = useRef(false);
 
   // Use the ambient music hook - it will trigger once UI is fully loaded (intro done)
-  useAmbientMusic(introDone);
+  const musicControls = useAmbientMusic(introDone);
 
   const handleIntroComplete = useCallback(() => {
     if (introCompletedRef.current) return;
@@ -392,7 +392,13 @@ export default function CarViewer() {
       {introDone && currentCar && (
         <>
           {/* Top-right Music Player */}
-          <MusicBar trackName="Drop It" visible={!isDragging} />
+          <MusicBar
+            trackName="Drop It"
+            visible={!isDragging}
+            onPause={musicControls?.pause}
+            onPlay={musicControls?.play}
+            isPaused={musicControls?.isPaused}
+          />
 
           {/* Bottom Feature Tiles */}
           <BottomTiles car={currentCar} visible={!isDragging} />

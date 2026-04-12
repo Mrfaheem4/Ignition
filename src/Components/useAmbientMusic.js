@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Tracks to pick from — drop any mp3/ogg into /public/Music/
 // and add the filename here. One is picked at random each visit.
@@ -11,6 +11,23 @@ function randomTrack() {
 export function useAmbientMusic(modelLoaded) {
   const audioRef = useRef(null);
   const fadeRef = useRef(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const pause = () => {
+    if (audioRef.current && !audioRef.current.paused) {
+      audioRef.current.pause();
+      setIsPaused(true);
+    }
+  };
+
+  const play = () => {
+    if (audioRef.current && audioRef.current.paused) {
+      audioRef.current.play().catch(() => {
+        // Browser autoplay policy blocked it
+      });
+      setIsPaused(false);
+    }
+  };
 
   useEffect(() => {
     if (!modelLoaded) return;
@@ -60,4 +77,6 @@ export function useAmbientMusic(modelLoaded) {
       }, 60);
     };
   }, [modelLoaded]);
+
+  return { pause, play, isPaused };
 }

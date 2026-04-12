@@ -1,10 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 
-export default function MusicBar({ trackName, visible }) {
+export default function MusicBar({
+  trackName,
+  visible,
+  onPause,
+  onPlay,
+  isPaused,
+}) {
   const containerRef = useRef();
   const contentRef = useRef();
   const [isExpanded, setIsExpanded] = useState(true);
+
+  const handleClick = () => {
+    if (isPaused && onPlay) {
+      onPlay();
+    } else if (!isPaused && onPause) {
+      onPause();
+    }
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -60,7 +74,7 @@ export default function MusicBar({ trackName, visible }) {
   return (
     <div
       ref={containerRef}
-      onClick={() => setIsExpanded(!isExpanded)}
+      onClick={handleClick}
       className="fixed top-8 left-1/2 z-50 flex items-center h-[30px] bg-white/60 border border-white/40 backdrop-blur-md rounded-2xl shadow-sm px-4 cursor-pointer overflow-hidden"
       style={{
         opacity: 0,
