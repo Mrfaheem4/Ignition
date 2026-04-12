@@ -357,8 +357,7 @@ export default function CarViewer() {
 
   useEffect(() => {
     if (modelLoaded) {
-      const timer = setTimeout(() => setShowLoading(false), 500);
-      return () => clearTimeout(timer);
+      setShowLoading(false);
     }
   }, [modelLoaded]);
 
