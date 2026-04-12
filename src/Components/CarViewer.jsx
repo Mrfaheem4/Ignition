@@ -15,6 +15,8 @@ import LoadingScreen from "./LoadingScreen";
 import cars from "../data/cars";
 import InfoPanel from "./InfoPanel";
 import BottomTiles from "./BottomTiles";
+import { useAmbientMusic } from "./useAmbientMusic";
+import MusicBar from "./MusicBar";
 
 // Preload is called outside the component so it fires immediately on module
 // load — the GLTF fetch starts before React even renders the Canvas.
@@ -247,6 +249,7 @@ function CameraRig({
       onEnd={onUserStopInteract}
       // regress temporarily drops pixel ratio during interaction to maintain
       // framerate on lower-end devices — R3F restores it automatically after
+      // regress
       regress
     />
   );
@@ -274,6 +277,9 @@ export default function CarViewer() {
   const carNameRef = useRef();
   const introCompletedRef = useRef(false);
   const hotspotJustClickedRef = useRef(false);
+
+  // Use the ambient music hook - it will trigger once UI is fully loaded (intro done)
+  useAmbientMusic(introDone);
 
   const handleIntroComplete = useCallback(() => {
     if (introCompletedRef.current) return;
@@ -382,8 +388,16 @@ export default function CarViewer() {
           carName={currentCar.brand}
         />
       )}
+      {/* HUD / UI Layer */}
+      {introDone && currentCar && (
+        <>
+          {/* Top-right Music Player */}
+          <MusicBar trackName="Drop It" visible={!isDragging} />
 
-      {introDone && <BottomTiles car={currentCar} visible={!isDragging} />}
+          {/* Bottom Feature Tiles */}
+          <BottomTiles car={currentCar} visible={!isDragging} />
+        </>
+      )}
 
       {/* debug overlay */}
       {/* <div

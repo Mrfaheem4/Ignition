@@ -1,9 +1,21 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import cars from "../data/cars";
 import LightRays from "../Components/LightRays";
+import { useAmbientMusic } from "../Components/useAmbientMusic";
 
 export default function Showroom() {
   const navigate = useNavigate();
+  const [uiReady, setUiReady] = useState(false);
+
+  // Delay music until UI is fully rendered
+  useEffect(() => {
+    const timer = setTimeout(() => setUiReady(true), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Play ambient music in showroom once UI is ready
+  useAmbientMusic(uiReady);
 
   return (
     <div className="min-h-screen bg-[#050505] text-white py-20 px-8 relative selection:bg-white/10">
