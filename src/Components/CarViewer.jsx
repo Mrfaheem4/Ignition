@@ -17,18 +17,25 @@ import InfoPanel from "./InfoPanel";
 import BottomTiles from "./BottomTiles";
 import { useAmbientMusic } from "./useAmbientMusic";
 import MusicBar from "./MusicBar";
+import {
+  preloadCarModel,
+  preloadAdjacentModels,
+} from "../utils/modelPreloader";
 
-// Preload is called outside the component so it fires immediately on module
-// load — the GLTF fetch starts before React even renders the Canvas.
-// Call this for every car you expect the user to visit.
+// Preload current car immediately on module load
 function preloadCar(car) {
-  useGLTF.preload(car.model);
+  preloadCarModel(car);
 }
 
 function CarModel({ modelPath, onLoaded, position }) {
   const { scene } = useGLTF(modelPath); // suspends until loaded
 
   useEffect(() => {
+    if (scene.userData.__prepared) {
+      if (onLoaded) onLoaded();
+      return;
+    }
+
     scene.traverse((child) => {
       if (child.isMesh) {
         child.material.envMapIntensity = 1.5;
@@ -36,28 +43,10 @@ function CarModel({ modelPath, onLoaded, position }) {
         child.receiveShadow = true;
       }
     });
+    scene.userData.__prepared = true;
     // onLoaded fires after scene is ready — tells the DOM layer to hide LoadingScreen
     if (onLoaded) onLoaded();
   }, [scene, onLoaded]);
-
-  // Cleanup function to handle context loss gracefully
-  useEffect(() => {
-    return () => {
-      // Properly dispose of geometries and materials when unmounting
-      scene.traverse((child) => {
-        if (child.isMesh) {
-          if (child.geometry) child.geometry.dispose();
-          if (child.material) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach((m) => m.dispose());
-            } else {
-              child.material.dispose();
-            }
-          }
-        }
-      });
-    };
-  }, [scene]);
 
   return (
     <group position={position || [0, 0, 0]}>
@@ -139,6 +128,10 @@ function CameraRig({
   const { camera, invalidate } = useThree(); // invalidate tells R3F to draw a frame on demand
   const controlsRef = useRef();
   const introStarted = useRef(false);
+
+  useEffect(() => {
+    invalidate();
+  }, [invalidate]);
 
   // Merged into a single useFrame — two useFrame callbacks on the same
   // component run sequentially but waste a hook slot each. One is cleaner.
@@ -264,6 +257,7 @@ function CameraRig({
       makeDefault
       enableDamping={true}
       dampingFactor={0.05}
+      onChange={invalidate}
       onStart={onUserInteract}
       onEnd={onUserStopInteract}
       // regress temporarily drops pixel ratio during interaction to maintain
@@ -315,6 +309,8 @@ export default function CarViewer() {
   // Kick off GLTF fetch immediately on render, before Suspense even triggers
   useEffect(() => {
     preloadCar(currentCar);
+    // Also preload adjacent cars for faster navigation
+    preloadAdjacentModels(cars, currentCar.id, 2);
   }, [currentCar]);
 
   const [target, setTarget] = useState(null);
@@ -330,8 +326,8 @@ export default function CarViewer() {
   const introCompletedRef = useRef(false);
   const hotspotJustClickedRef = useRef(false);
 
-  // Use the ambient music hook - it will trigger once UI is fully loaded (intro done)
-  const musicControls = useAmbientMusic(introDone);
+  // Use the ambient music hook - triggered independently on component mount
+  const musicControls = useAmbientMusic();
 
   // Reset state when car changes to ensure clean remount
   useEffect(() => {
@@ -355,11 +351,17 @@ export default function CarViewer() {
     );
   }, []);
 
+  // Hide loading screen when model finishes loading AND show intro overlay
   useEffect(() => {
+    if (modelLoaded && !showLoading) return; // already hidden
     if (modelLoaded) {
-      setShowLoading(false);
+      // Small delay to ensure render is complete
+      const timer = requestAnimationFrame(() => {
+        setShowLoading(false);
+      });
+      return () => cancelAnimationFrame(timer);
     }
-  }, [modelLoaded]);
+  }, [modelLoaded, showLoading]);
 
   // useCallback so CameraRig/Hotspot don't cause unnecessary re-renders
   const handleModelLoaded = useCallback(() => setModelLoaded(true), []);
@@ -504,13 +506,18 @@ export default function CarViewer() {
       </div>
 
       <Canvas
+        frameloop="demand"
         gl={{
           antialias: true,
+          stencil: false, // Disable if not needed - saves memory
+          depth: true,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.2,
           outputColorSpace: THREE.SRGBColorSpace,
-          preserveDrawingBuffer: true,
+          preserveDrawingBuffer: false, // Changed to false for better performance
           powerPreference: "high-performance",
+          alpha: true,
+          logarithmicDepthBuffer: false,
         }}
         camera={{
           position: [
@@ -519,7 +526,11 @@ export default function CarViewer() {
             currentCar.intro.startPosition.z,
           ],
           fov: 35,
+          near: 0.1,
+          far: 1000,
         }}
+        // Use pixel ratio smartly - reduces on lower-end devices
+        dpr={Math.min(window.devicePixelRatio, 1.25)}
       >
         <Environment files="/concrete_1.hdr" background={false} />
 
@@ -539,10 +550,13 @@ export default function CarViewer() {
 
         <ContactShadows
           position={[0, -0.01, 0]}
-          opacity={1}
+          opacity={0.55}
           scale={20}
-          blur={1.5}
-          far={5}
+          blur={1}
+          far={4.5}
+          resolution={256}
+          // Cache the shadow map for better performance
+          frames={1}
         />
 
         {introDone &&

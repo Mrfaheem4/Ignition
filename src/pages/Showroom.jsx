@@ -1,21 +1,29 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import cars from "../data/cars";
 import LightRays from "../Components/LightRays";
 import { useAmbientMusic } from "../Components/useAmbientMusic";
+import { preloadCarModel } from "../utils/modelPreloader";
 
 export default function Showroom() {
   const navigate = useNavigate();
-  const [uiReady, setUiReady] = useState(false);
 
-  // Delay music until UI is fully rendered
+  // Initialize music on showroom mount (plays in background across pages)
+  useAmbientMusic();
+
+  // Preload only after the browser is idle so the showroom stays responsive.
   useEffect(() => {
-    const timer = setTimeout(() => setUiReady(true), 300);
-    return () => clearTimeout(timer);
-  }, []);
+    const firstCars = cars.slice(0, 2);
+    const schedule =
+      window.requestIdleCallback || ((callback) => setTimeout(callback, 300));
+    const cancel = window.cancelIdleCallback || clearTimeout;
 
-  // Play ambient music in showroom once UI is ready
-  useAmbientMusic(uiReady);
+    const handle = schedule(() => {
+      firstCars.forEach((car) => preloadCarModel(car));
+    });
+
+    return () => cancel(handle);
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#050505] text-white py-20 px-8 relative selection:bg-white/10">
@@ -27,8 +35,8 @@ export default function Showroom() {
           raysSpeed={0.8}
           lightSpread={0.6}
           rayLength={2.5}
-          followMouse={true}
-          mouseInfluence={0.05}
+          followMouse={false}
+          mouseInfluence={0}
         />
       </div>
 
@@ -51,7 +59,7 @@ export default function Showroom() {
             </span>
             <h1 className="text-7xl font-bold tracking-tighter">
               The{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-white to-gray-500">
                 Collection
               </span>
             </h1>
@@ -63,13 +71,19 @@ export default function Showroom() {
           {cars.map((car) => (
             <div
               key={car.id}
-              onClick={() => navigate(`/car/${car.id}`)}
+              onMouseEnter={() => preloadCarModel(car)}
+              onFocus={() => preloadCarModel(car)}
+              onClick={() => {
+                preloadCarModel(car);
+                navigate(`/car/${car.id}`);
+              }}
+              tabIndex={0}
               className="group cursor-pointer relative"
             >
               {/* Card Container */}
-              <div className="relative overflow-hidden rounded-sm bg-gradient-to-b from-[#111] to-[#0a0a0a] border border-white/5 group-hover:border-white/20 transition-all duration-500 p-10 h-full flex flex-col justify-between hover:scale-[1.03]">
+              <div className="relative overflow-hidden rounded-sm bg-linear-to-b from-[#111] to-[#0a0a0a] border border-white/5 group-hover:border-white/20 transition-all duration-500 p-10 h-full flex flex-col justify-between hover:scale-[1.03]">
                 {/* Hover Glow Effect */}
-                <div className="absolute -inset-px bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute -inset-px bg-linear-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
                 <div className="relative z-10">
                   {/* Brand & Logo Row */}

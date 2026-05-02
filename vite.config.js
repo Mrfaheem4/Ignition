@@ -28,7 +28,27 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 700,
     sourcemap: false,
+    // Improve loading performance
+    cssCodeSplit: true,
+    // Aggressive tree-shaking
+    treeshake: {
+      moduleSideEffects: false,
+      propertyReadSideEffects: false,
+      tryCatchDeoptimization: false,
+    },
+  },
+  // Optimize dependencies
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "three",
+      "@react-three/fiber",
+      "@react-three/drei",
+      "gsap",
+    ],
   },
 }));

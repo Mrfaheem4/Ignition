@@ -4,11 +4,26 @@ import { useEffect, useRef, useState } from "react";
 // and add the filename here. One is picked at random each visit.
 const TRACKS = ["/Music/Drop It.mp3"];
 
+// Global audio instance - cache to avoid recreating on each mount
+let globalAudioInstance = null;
+
 function randomTrack() {
   return TRACKS[Math.floor(Math.random() * TRACKS.length)];
 }
 
-export function useAmbientMusic(modelLoaded) {
+// Initialize global audio once per page load
+function initGlobalAudio() {
+  if (globalAudioInstance) return globalAudioInstance;
+
+  const track = randomTrack();
+  const audio = new Audio(track);
+  audio.loop = true;
+  audio.volume = 0;
+  globalAudioInstance = audio;
+  return audio;
+}
+
+export function useAmbientMusic() {
   const audioRef = useRef(null);
   const fadeRef = useRef(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -30,53 +45,37 @@ export function useAmbientMusic(modelLoaded) {
   };
 
   useEffect(() => {
-    if (!modelLoaded) return;
-
-    // Pick a random track once per car load
-    const track = randomTrack();
-    const audio = new Audio(track);
-    audio.loop = true;
-    audio.volume = 0; // start silent — we fade in
+    // Always get/init global audio on mount
+    const audio = initGlobalAudio();
     audioRef.current = audio;
 
-    const timer = setTimeout(() => {
-      audio.play().catch(() => {
-        // Browser autoplay policy blocked it — wait for first user gesture
-        const resume = () => {
-          audio.play();
-          window.removeEventListener("pointerdown", resume);
-        };
-        window.addEventListener("pointerdown", resume, { once: true });
-      });
+    // If not already playing, start it
+    if (audio.paused) {
+      const timer = setTimeout(() => {
+        audio.play().catch(() => {
+          // Browser autoplay policy blocked it — wait for first user gesture
+          const resume = () => {
+            audio.play();
+            window.removeEventListener("pointerdown", resume);
+          };
+          window.addEventListener("pointerdown", resume, { once: true });
+        });
 
-      // Fade in from 0 → 0.35 over 2 seconds
-      let vol = 0;
-      fadeRef.current = setInterval(() => {
-        vol = Math.min(vol + 0.01, 0.35);
-        audio.volume = vol;
-        if (vol >= 0.35) clearInterval(fadeRef.current);
-      }, 60);
-    }, 500); // 500ms after model loaded
+        // Fade in from current volume → 0.35
+        let vol = audio.volume;
+        fadeRef.current = setInterval(() => {
+          vol = Math.min(vol + 0.015, 0.35);
+          audio.volume = vol;
+          if (vol >= 0.35) clearInterval(fadeRef.current);
+        }, 50);
+      }, 200);
 
-    return () => {
-      clearTimeout(timer);
-      clearInterval(fadeRef.current);
-
-      // Fade out cleanly on unmount (user navigates away)
-      const dying = audioRef.current;
-      if (!dying) return;
-      let vol = dying.volume;
-      const fadeOut = setInterval(() => {
-        vol = Math.max(vol - 0.02, 0);
-        dying.volume = vol;
-        if (vol <= 0) {
-          dying.pause();
-          dying.src = "";
-          clearInterval(fadeOut);
-        }
-      }, 60);
-    };
-  }, [modelLoaded]);
+      return () => {
+        clearTimeout(timer);
+        if (fadeRef.current) clearInterval(fadeRef.current);
+      };
+    }
+  }, []);
 
   return { pause, play, isPaused };
 }

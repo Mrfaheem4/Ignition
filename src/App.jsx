@@ -24,6 +24,7 @@ function ShowroomRoute() {
 }
 
 // CarViewer retains its own Suspense to prevent WebGL context loss
+// Uses requestAnimationFrame to properly hide loading screen after model loads
 function CarViewerRoute() {
   return (
     <Suspense fallback={<LoadingScreen />}>

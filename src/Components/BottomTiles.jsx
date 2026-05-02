@@ -84,7 +84,7 @@ export default function BottomTiles({ car, visible }) {
               ${
                 tile.dark
                   ? "bg-black text-white"
-                  : "bg-white/80 border border-black/5 backdrop-blur-sm"
+                  : "bg-white/70 border border-black/5"
               }`}
           >
             {/* Top row: icon left, label right */}
