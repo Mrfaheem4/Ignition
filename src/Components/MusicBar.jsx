@@ -67,14 +67,16 @@ export default function MusicBar({
         ease: "back.inOut(1.7)",
       });
     }
-  }, [isExpanded]);
+  }, [isExpanded, visible]);
 
   if (!visible) return null;
 
   return (
-    <div
+    <button
       ref={containerRef}
       onClick={handleClick}
+      aria-label={isPaused ? "Play music" : "Pause music"}
+      aria-pressed={!isPaused}
       className="fixed top-8 left-1/2 z-50 flex items-center h-[30px] bg-white/60 border border-white/40 backdrop-blur-md rounded-2xl shadow-sm px-4 cursor-pointer overflow-hidden"
       style={{
         opacity: 0,
@@ -92,7 +94,7 @@ export default function MusicBar({
       {/* Expanded Content */}
       <div ref={contentRef} className="flex flex-col ml-4 whitespace-nowrap">
         <span className="text-black/30 text-[9px] font-bold uppercase tracking-widest leading-none">
-          Now Playing
+          {isPaused ? "Music paused" : "Now Playing"}
         </span>
         <span className="text-black text-[13px] font-bold tracking-tight">
           {trackName || "Music"}
@@ -105,6 +107,6 @@ export default function MusicBar({
           50% { height: 12px; }
         }
       `}</style>
-    </div>
+    </button>
   );
 }

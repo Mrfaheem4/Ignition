@@ -1,4 +1,18 @@
 @import "tailwindcss";
+@source not "../public/draco";
 body {
   font-family: "Rubik", sans-serif;
+  margin: 0;
+  background: #0a0a0a;
+}
+
+@keyframes loading-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(340%); }
+}
+.loading-indicator { width: 30%; animation: loading-sweep 1.4s ease-in-out infinite; }
+button, a { touch-action: manipulation; }
+:focus-visible { outline: 2px solid #aaa; outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

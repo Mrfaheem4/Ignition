@@ -12,11 +12,14 @@
     <link
       href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
     <title>Ignition</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div role="status" aria-label="Starting Ignition" style="position:fixed;inset:0;display:grid;place-items:center;background:#0a0a0a;color:white;font:700 30px system-ui;letter-spacing:.3em">IGNITION</div></div>
+    <noscript><p style="color:white;background:#0a0a0a;padding:2rem">Please enable JavaScript to explore Ignition.</p></noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

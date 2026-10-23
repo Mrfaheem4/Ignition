@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import LoadingScreen from "./Components/LoadingScreen.jsx";
+import ErrorBoundary from "./Components/ErrorBoundary.jsx";
 
 const Home = lazy(() => import("./Components/Home.jsx"));
 const Showroom = lazy(() => import("./pages/Showroom.jsx"));
@@ -23,26 +24,31 @@ function ShowroomRoute() {
   );
 }
 
-// CarViewer retains its own Suspense to prevent WebGL context loss
-// Uses requestAnimationFrame to properly hide loading screen after model loads
+// A keyed viewer resets loading and camera state when the selected car changes.
 function CarViewerRoute() {
+  const { carId } = useParams();
   return (
-    <Suspense fallback={<LoadingScreen />}>
-      <CarViewer />
-    </Suspense>
+    <ErrorBoundary key={carId}>
+      <Suspense fallback={<LoadingScreen />}>
+        <CarViewer key={carId} />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/home" />} />
-        <Route path="/home" element={<HomeRoute />} />
-        <Route path="/showroom" element={<ShowroomRoute />} />
-        <Route path="/showroom/:carId" element={<CarViewerRoute />} />
-        <Route path="/car/:carId" element={<CarViewerRoute />} />
-      </Routes>
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={<Navigate to="/home" replace />} />
+          <Route path="/home" element={<HomeRoute />} />
+          <Route path="/showroom" element={<ShowroomRoute />} />
+          <Route path="/showroom/:carId" element={<CarViewerRoute />} />
+          <Route path="/car/:carId" element={<CarViewerRoute />} />
+          <Route path="*" element={<Navigate to="/home" replace />} />
+        </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

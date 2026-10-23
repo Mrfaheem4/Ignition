@@ -84,22 +84,18 @@ const LightRays = ({
   }, []);
 
   useEffect(() => {
-    if (!isVisible || !containerRef.current) return;
+    if (!isVisible || !containerRef.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     if (cleanupFunctionRef.current) {
       cleanupFunctionRef.current();
       cleanupFunctionRef.current = null;
     }
 
-    const initializeWebGL = async () => {
-      if (!containerRef.current) return;
-
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
+    const initializeWebGL = () => {
       if (!containerRef.current) return;
 
       const renderer = new Renderer({
-        dpr: Math.min(window.devicePixelRatio, 2),
+        dpr: Math.min(window.devicePixelRatio, 1),
         alpha: true,
       });
       rendererRef.current = renderer;
@@ -248,7 +244,7 @@ void main() {
       const updatePlacement = () => {
         if (!containerRef.current || !renderer) return;
 
-        renderer.dpr = Math.min(window.devicePixelRatio, 2);
+        renderer.dpr = Math.min(window.devicePixelRatio, 1);
 
         const { clientWidth: wCSS, clientHeight: hCSS } = containerRef.current;
         renderer.setSize(wCSS, hCSS);
@@ -264,11 +260,18 @@ void main() {
         uniforms.rayDir.value = dir;
       };
 
+      let lastFrame = 0;
       const loop = (t) => {
         if (!rendererRef.current || !uniformsRef.current || !meshRef.current) {
           return;
         }
 
+        if (document.hidden) return;
+        if (t - lastFrame < 1000 / 30) {
+          animationIdRef.current = requestAnimationFrame(loop);
+          return;
+        }
+        lastFrame = t;
         uniforms.iTime.value = t * 0.001;
 
         if (followMouse && mouseInfluence > 0.0) {
@@ -296,6 +299,11 @@ void main() {
         }
       };
 
+      const onVisibilityChange = () => {
+        cancelAnimationFrame(animationIdRef.current);
+        if (!document.hidden) animationIdRef.current = requestAnimationFrame(loop);
+      };
+      document.addEventListener("visibilitychange", onVisibilityChange);
       window.addEventListener("resize", updatePlacement);
       updatePlacement();
       animationIdRef.current = requestAnimationFrame(loop);
@@ -306,6 +314,7 @@ void main() {
           animationIdRef.current = null;
         }
 
+        document.removeEventListener("visibilitychange", onVisibilityChange);
         window.removeEventListener("resize", updatePlacement);
 
         if (renderer) {
@@ -331,7 +340,11 @@ void main() {
       };
     };
 
-    initializeWebGL();
+    try {
+      initializeWebGL();
+    } catch (error) {
+      console.warn("Decorative light rays unavailable:", error);
+    }
 
     return () => {
       if (cleanupFunctionRef.current) {

@@ -5,9 +5,10 @@ import {
   Environment,
   Html,
   ContactShadows,
+  useProgress,
 } from "@react-three/drei";
 import { useRef, useEffect, useState, Suspense, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Navigate, useParams, useNavigate } from "react-router-dom";
 import * as THREE from "three";
 import gsap from "gsap";
 import IntroOverlay from "./IntroOverlay";
@@ -17,50 +18,51 @@ import InfoPanel from "./InfoPanel";
 import BottomTiles from "./BottomTiles";
 import { useAmbientMusic } from "./useAmbientMusic";
 import MusicBar from "./MusicBar";
-import {
-  preloadCarModel,
-  preloadAdjacentModels,
-} from "../utils/modelPreloader";
+useGLTF.setDecoderPath("/draco/");
 
-// Preload current car immediately on module load
-function preloadCar(car) {
-  preloadCarModel(car);
-}
+const preparedScenes = new WeakSet();
 
-function CarModel({ modelPath, onLoaded, position }) {
+function CarModel({ modelPath, position }) {
   const { scene } = useGLTF(modelPath); // suspends until loaded
 
   useEffect(() => {
-    if (scene.userData.__prepared) {
-      if (onLoaded) onLoaded();
-      return;
-    }
+    if (preparedScenes.has(scene)) return;
 
     scene.traverse((child) => {
       if (child.isMesh) {
-        child.material.envMapIntensity = 1.5;
+        const materials = Array.isArray(child.material) ? child.material : [child.material];
+        materials.forEach((material) => { material.envMapIntensity = 1.5; });
         child.castShadow = true;
         child.receiveShadow = true;
       }
     });
-    scene.userData.__prepared = true;
-    // onLoaded fires after scene is ready — tells the DOM layer to hide LoadingScreen
-    if (onLoaded) onLoaded();
-  }, [scene, onLoaded]);
+    preparedScenes.add(scene);
+  }, [scene]);
 
   return (
     <group position={position || [0, 0, 0]}>
-      <primitive object={scene} />
+      <primitive object={scene} dispose={null} />
     </group>
   );
 }
 
-// Thin R3F fallback rendered inside the Canvas while the GLTF suspends.
-// This keeps every useThree/useFrame consumer alive — no context loss.
-// Your real LoadingScreen is a separate DOM overlay (see below), this just
-// stops R3F from complaining about an empty scene.
-function CanvasFallback() {
-  return null; // Canvas stays mounted; DOM LoadingScreen handles the visual
+// This commits only once the entire scene's Suspense boundary resolves.
+// Report readiness after the first rendered frame, including the environment.
+function SceneReady({ onReady }) {
+  const reported = useRef(false);
+  const frame = useRef(null);
+  useFrame(() => {
+    if (reported.current) return;
+    reported.current = true;
+    frame.current = requestAnimationFrame(onReady);
+  });
+  useEffect(() => () => cancelAnimationFrame(frame.current), []);
+  return null;
+}
+
+function SceneLoading({ carName, onBack }) {
+  const progress = useProgress((state) => state.progress);
+  return <LoadingScreen carName={carName} progress={progress > 0 ? progress : undefined} onBack={onBack} />;
 }
 
 function Hotspot({ position, label, onClick }) {
@@ -127,89 +129,40 @@ function CameraRig({
 }) {
   const { camera, invalidate } = useThree(); // invalidate tells R3F to draw a frame on demand
   const controlsRef = useRef();
-  const introStarted = useRef(false);
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    controls.enabled = false;
+    camera.position.set(startPosition.x, startPosition.y, startPosition.z);
+    controls.target.set(defaultView.lookAt.x, defaultView.lookAt.y, defaultView.lookAt.z);
+    controls.update();
+    const proxy = {
+      angle: Math.atan2(startPosition.z, startPosition.x),
+      radius: Math.hypot(startPosition.x, startPosition.z),
+      y: startPosition.y,
+    };
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const tween = gsap.to(proxy, {
+      angle: Math.atan2(defaultView.position.z, defaultView.position.x) - Math.PI * 2,
+      radius: Math.hypot(defaultView.position.x, defaultView.position.z),
+      y: defaultView.position.y,
+      duration: reducedMotion ? 0 : 2,
+      ease: "power2.inOut",
+      onUpdate: () => {
+        camera.position.set(Math.cos(proxy.angle) * proxy.radius, proxy.y, Math.sin(proxy.angle) * proxy.radius);
+        controls.update();
+        invalidate();
+      },
+      onComplete: () => {
+        controls.enabled = true;
+        onIntroComplete?.();
+      },
+    });
+    return () => { tween.kill(); controls.enabled = true; };
+  }, [camera, invalidate, startPosition, defaultView, onIntroComplete]);
 
   useEffect(() => {
-    invalidate();
-  }, [invalidate]);
-
-  // Merged into a single useFrame — two useFrame callbacks on the same
-  // component run sequentially but waste a hook slot each. One is cleaner.
-  useFrame(() => {
-    // --- Intro spin (runs once on the first frame after controls mount) ---
-    if (!introStarted.current && controlsRef.current) {
-      introStarted.current = true;
-
-      const controls = controlsRef.current;
-      controls.enabled = false;
-
-      camera.position.set(startPosition.x, startPosition.y, startPosition.z);
-      controls.target.set(
-        defaultView.lookAt.x,
-        defaultView.lookAt.y,
-        defaultView.lookAt.z,
-      );
-      controls.update();
-
-      const startRadius = Math.sqrt(
-        startPosition.x ** 2 + startPosition.z ** 2,
-      );
-      const endRadius = Math.sqrt(
-        defaultView.position.x ** 2 + defaultView.position.z ** 2,
-      );
-      const startAngle = Math.atan2(startPosition.z, startPosition.x);
-      const endAngle = startAngle - Math.PI * 2;
-
-      const proxy = {
-        angle: startAngle,
-        radius: startRadius,
-        y: startPosition.y,
-      };
-
-      gsap.to(proxy, {
-        angle: endAngle,
-        radius: endRadius,
-        y: defaultView.position.y,
-        duration: 3,
-        ease: "power2.inOut",
-        onUpdate: () => {
-          camera.position.x = Math.cos(proxy.angle) * proxy.radius;
-          camera.position.z = Math.sin(proxy.angle) * proxy.radius;
-          camera.position.y = proxy.y;
-          controls.target.set(
-            defaultView.lookAt.x,
-            defaultView.lookAt.y,
-            defaultView.lookAt.z,
-          );
-          controls.update();
-          invalidate(); // GSAP runs outside R3F — must tell it a frame is needed
-        },
-        onComplete: () => {
-          controls.target.set(
-            defaultView.lookAt.x,
-            defaultView.lookAt.y,
-            defaultView.lookAt.z,
-          );
-          controls.update();
-          controls.enabled = true;
-          if (onIntroComplete) onIntroComplete();
-        },
-      });
-    }
-
-    // --- Debug overlay (only active when the div exists in the DOM) ---
-    const el = document.getElementById("cam-debug");
-    if (controlsRef.current && el) {
-      const pos = camera.position;
-      const tar = controlsRef.current.target;
-      el.innerText =
-        `position: { x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)} }\n` +
-        `target:   { x: ${tar.x.toFixed(2)}, y: ${tar.y.toFixed(2)}, z: ${tar.z.toFixed(2)} }`;
-    }
-  });
-
-  useEffect(() => {
-    if (!targetPosition || !targetLookAt) return;
+    if (!targetPosition || !targetLookAt || !controlsRef.current) return;
 
     const controls = controlsRef.current;
     gsap.killTweensOf(camera.position);
@@ -249,7 +202,8 @@ function CameraRig({
       },
       0,
     );
-  }, [targetPosition, targetLookAt, targetKey]);
+    return () => { tl.kill(); controls.enabled = true; };
+  }, [camera, invalidate, targetPosition, targetLookAt, targetKey]);
 
   return (
     <OrbitControls
@@ -260,10 +214,6 @@ function CameraRig({
       onChange={invalidate}
       onStart={onUserInteract}
       onEnd={onUserStopInteract}
-      // regress temporarily drops pixel ratio during interaction to maintain
-      // framerate on lower-end devices — R3F restores it automatically after
-      // regress
-      regress
     />
   );
 }
@@ -273,45 +223,11 @@ export default function CarViewer() {
   const navigate = useNavigate();
   const currentCar = cars.find((c) => c.id === carId) || cars[0];
 
-  // Suppress expected WebGL context loss warnings during unmount
   useEffect(() => {
-    const originalWarn = console.warn;
-    const originalLog = console.log;
-
-    const handleConsoleOutput = (args) => {
-      const message = args[0]?.toString() || "";
-      // Suppress expected warnings during navigation
-      if (
-        message.includes("WebGL context lost") ||
-        message.includes("Context Lost")
-      ) {
-        return;
-      }
-      return args;
-    };
-
-    console.warn = (...args) => {
-      const filtered = handleConsoleOutput(args);
-      if (filtered) originalWarn.apply(console, filtered);
-    };
-
-    console.log = (...args) => {
-      const filtered = handleConsoleOutput(args);
-      if (filtered) originalLog.apply(console, filtered);
-    };
-
-    return () => {
-      console.warn = originalWarn;
-      console.log = originalLog;
-    };
-  }, []);
-
-  // Kick off GLTF fetch immediately on render, before Suspense even triggers
-  useEffect(() => {
-    preloadCar(currentCar);
-    // Also preload adjacent cars for faster navigation
-    preloadAdjacentModels(cars, currentCar.id, 2);
-  }, [currentCar]);
+    // Fetch only the selected car, alongside its environment rather than
+    // waiting for sibling Suspense work or competing with neighboring cars.
+    if (currentCar.id === carId) useGLTF.preload(currentCar.model);
+  }, [currentCar, carId]);
 
   const [target, setTarget] = useState(null);
   const [targetKey, setTargetKey] = useState(0);
@@ -320,30 +236,19 @@ export default function CarViewer() {
   const [isSnapped, setIsSnapped] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [introDone, setIntroDone] = useState(false);
-  const [modelLoaded, setModelLoaded] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
   const carNameRef = useRef();
   const introCompletedRef = useRef(false);
   const hotspotJustClickedRef = useRef(false);
 
-  // Use the ambient music hook - triggered independently on component mount
-  const musicControls = useAmbientMusic();
-
-  // Reset state when car changes to ensure clean remount
-  useEffect(() => {
-    setIntroDone(false);
-    setModelLoaded(false);
-    setShowLoading(true);
-    introCompletedRef.current = false;
-    setActiveView("default");
-    setTarget(null);
-    setTargetKey(0);
-  }, [carId]);
+  // Defer audio until the selected scene is ready.
+  const musicControls = useAmbientMusic(!showLoading);
 
   const handleIntroComplete = useCallback(() => {
     if (introCompletedRef.current) return;
     introCompletedRef.current = true;
     setIntroDone(true);
+    if (!carNameRef.current) return;
     gsap.fromTo(
       carNameRef.current,
       { opacity: 0, x: -10 },
@@ -351,20 +256,7 @@ export default function CarViewer() {
     );
   }, []);
 
-  // Hide loading screen when model finishes loading AND show intro overlay
-  useEffect(() => {
-    if (modelLoaded && !showLoading) return; // already hidden
-    if (modelLoaded) {
-      // Small delay to ensure render is complete
-      const timer = requestAnimationFrame(() => {
-        setShowLoading(false);
-      });
-      return () => cancelAnimationFrame(timer);
-    }
-  }, [modelLoaded, showLoading]);
-
-  // useCallback so CameraRig/Hotspot don't cause unnecessary re-renders
-  const handleModelLoaded = useCallback(() => setModelLoaded(true), []);
+  const handleModelLoaded = useCallback(() => setShowLoading(false), []);
 
   const handleUserInteract = useCallback(() => {
     if (hotspotJustClickedRef.current) {
@@ -395,8 +287,10 @@ export default function CarViewer() {
     [currentCar],
   );
 
+  if (!cars.some((car) => car.id === carId)) return <Navigate to="/showroom" replace />;
+
   return (
-    <div className="w-screen h-screen bg-[#e7e5e5]">
+    <div className="w-screen h-dvh bg-[#e7e5e5]">
       <style>{`
         @keyframes pulse {
           0%   { transform: scale(1);   opacity: 0.8; }
@@ -406,7 +300,7 @@ export default function CarViewer() {
 
       <button
         onClick={() => navigate("/showroom")}
-        className="absolute top-6 left-6 z-50 text-sm tracking-[0.2em] uppercase text-gray-400 hover:text-white transition-colors pointer-events-auto"
+        className="absolute top-6 left-6 z-50 text-sm tracking-[0.2em] uppercase text-black/60 hover:text-black transition-colors pointer-events-auto"
       >
         ← Back to Collection
       </button>
@@ -430,10 +324,10 @@ export default function CarViewer() {
         </div>
       </div>
 
-      {/* DOM loading screen — controlled by modelLoaded state, independent of Suspense */}
-      {showLoading && <LoadingScreen />}
+      {/* Keep the loading overlay until the entire scene has rendered. */}
+      {showLoading && <SceneLoading carName={currentCar.name} onBack={() => navigate("/showroom")} />}
 
-      {modelLoaded && !introDone && (
+      {!showLoading && !introDone && (
         <IntroOverlay
           carName={currentCar.name}
           carModel={currentCar.brand}
@@ -445,10 +339,8 @@ export default function CarViewer() {
       {introDone && (
         <InfoPanel
           hotspot={activeHotspot}
-          accent={currentCar.intro.text.accent}
           onClose={() => setActiveHotspot(null)}
           visible={!!activeHotspot && !isDragging}
-          logoSrc={`/logos/${currentCar.id}.png`}
           carName={currentCar.brand}
         />
       )}
@@ -469,31 +361,12 @@ export default function CarViewer() {
         </>
       )}
 
-      {/* debug overlay */}
-      {/* <div
-        id="cam-debug"
-        style={{
-          position: "absolute",
-          bottom: 20,
-          left: 20,
-          zIndex: 100,
-          color: "lime",
-          fontFamily: "monospace",
-          fontSize: 12,
-          background: "rgba(0,0,0,0.6)",
-          padding: "8px 12px",
-          borderRadius: 6,
-          whiteSpace: "pre",
-          pointerEvents: "none",
-        }}
-      /> */}
-
-      <div className="absolute top-5 right-5 z-10 flex gap-1.5">
+      <div className="absolute top-5 right-3 z-10 flex max-w-[55%] flex-wrap justify-end gap-1.5">
         {Object.keys(currentCar.views).map((key) => (
           <button
             key={key}
             onClick={() => handleViewClick(key)}
-            className={`px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest rounded-full transition-all duration-200 border border-black/
+            className={`px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest rounded-full transition-all duration-200 border
         ${
           activeView === key && isSnapped
             ? "bg-black/70 text-white border-black/40 backdrop-blur-md"
@@ -529,12 +402,12 @@ export default function CarViewer() {
           near: 0.1,
           far: 1000,
         }}
-        // Use pixel ratio smartly - reduces on lower-end devices
-        dpr={Math.min(window.devicePixelRatio, 1.25)}
+        // Keep the same resolution while idle, dragging, and animating.
+        // Cap high-density screens at 2x without reducing quality on interaction.
+        dpr={[1, 2]}
       >
-        <Environment files="/concrete_1.hdr" background={false} />
-
-        <Suspense fallback={<CanvasFallback />}>
+        <Suspense fallback={null}>
+          <Environment files="/concrete_1.hdr" background={false} />
           <CarModel
             modelPath={currentCar.model}
             position={
@@ -544,49 +417,49 @@ export default function CarViewer() {
                 currentCar.modelPosition.z,
               ]
             }
-            onLoaded={handleModelLoaded}
           />
+
+          <ContactShadows
+            position={[0, -0.01, 0]}
+            opacity={0.55}
+            scale={20}
+            blur={1}
+            far={4.5}
+            resolution={256}
+            // Cache the shadow map for better performance
+            frames={1}
+          />
+
+          {introDone &&
+            currentCar.hotspots
+              .filter((h) => !(isSnapped && h.id === activeView))
+              .map((h) => (
+                <Hotspot
+                  key={h.id}
+                  position={h.position}
+                  label={h.label}
+                  onClick={() => {
+                    setTarget({ ...currentCar.views[h.view] });
+                    setActiveView(h.id);
+                    setIsSnapped(true);
+                    setActiveHotspot(h);
+                    setTargetKey((prev) => prev + 1);
+                  }}
+                />
+              ))}
+
+          <CameraRig
+            targetPosition={target?.position}
+            targetLookAt={target?.lookAt}
+            targetKey={targetKey}
+            onUserInteract={handleUserInteract}
+            onUserStopInteract={handleUserStopInteract}
+            startPosition={currentCar.intro.startPosition}
+            defaultView={currentCar.views.default}
+            onIntroComplete={handleIntroComplete}
+          />
+          <SceneReady onReady={handleModelLoaded} />
         </Suspense>
-
-        <ContactShadows
-          position={[0, -0.01, 0]}
-          opacity={0.55}
-          scale={20}
-          blur={1}
-          far={4.5}
-          resolution={256}
-          // Cache the shadow map for better performance
-          frames={1}
-        />
-
-        {introDone &&
-          currentCar.hotspots
-            .filter((h) => !(isSnapped && h.id === activeView))
-            .map((h) => (
-              <Hotspot
-                key={h.id}
-                position={h.position}
-                label={h.label}
-                onClick={() => {
-                  setTarget({ ...currentCar.views[h.view] });
-                  setActiveView(h.id);
-                  setIsSnapped(true);
-                  setActiveHotspot(h);
-                  setTargetKey((prev) => prev + 1);
-                }}
-              />
-            ))}
-
-        <CameraRig
-          targetPosition={target?.position}
-          targetLookAt={target?.lookAt}
-          targetKey={targetKey}
-          onUserInteract={handleUserInteract}
-          onUserStopInteract={handleUserStopInteract}
-          startPosition={currentCar.intro.startPosition}
-          defaultView={currentCar.views.default}
-          onIntroComplete={handleIntroComplete}
-        />
       </Canvas>
     </div>
   );

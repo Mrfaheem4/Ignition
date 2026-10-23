@@ -13,7 +13,7 @@ const mercedesGT4 = {
   id: "mercedes_GT4",
   name: "AMG GT4",
   brand: "Mercedes-AMG",
-  model: "/mercedes_GT4.glb",
+  model: "/mercedes_GT4.glb?v=webp2k1",
   engine: "AMG 4.0L V8 Biturbo",
   torque: "630 Nm",
   topspeed: "Over 177 mph (285 km/h) — *Variable by gearing*",
@@ -87,7 +87,7 @@ const redbull_f1 = {
   id: "redbull_f1",
   name: "RB19 F1 Car",
   brand: "Red Bull Racing",
-  model: "/redbull_f1.glb",
+  model: "/redbull_f1.glb?v=webp2k1",
   engine: "Honda RBPTH002 1.6L V6 Turbo Hybrid",
   torque: "864 Nm",
   topspeed: "210-220 mph (340-355 km/h)",
@@ -158,7 +158,7 @@ const koenigsegg_one = {
   id: "koenigsegg_one",
   name: "One",
   brand: "Koenigsegg",
-  model: "/koenigsegg_one.glb",
+  model: "/koenigsegg_one.glb?v=webp2k1",
   engine: "5.0L V8 ",
   torque: "1000+ Nm with Max at 1371 Nm @ 6000 rpm",
 
@@ -230,7 +230,7 @@ const volvo_polestar = {
   id: "volvo_polestar",
   name: "Polestar 2",
   brand: "Volvo",
-  model: "/volvo_polestar.glb",
+  model: "/volvo_polestar.glb?v=webp2k1",
   modelPosition: { x: 0, y: 0.5, z: 0 },
   engine:
     "2.0L Turbo Hybrid I4 \n2 electric motors and ISG \n626 bhp (467 kW) @ 5800 - 6100 rpm",
@@ -305,7 +305,7 @@ const hoonicorn = {
   id: "hoonicorn",
   name: "Hoonicorn V2",
   brand: "Hoonigan",
-  model: "/hoonicorn.glb",
+  model: "/hoonicorn.glb?v=webp2k1",
 
   engine: "6.7L Roush Yates Twin-Turbocharged V8 (Methanol Powered)",
   torque: "1,250 lb-ft (1,695 Nm)",
@@ -379,7 +379,7 @@ const mercedes_300sl = {
   id: "mercedes_300sl",
   name: "300SL Gullwing",
   brand: "Mercedes-Benz",
-  model: "/mercedes_300sl.glb",
+  model: "/mercedes_300sl.glb?v=webp2k1",
 
   engine: "3.0L M198 Inline-6 with Bosch Mechanical Direct Injection",
   torque: "202 lb-ft (274 Nm)",
@@ -451,7 +451,7 @@ const mclaren_f1_gtr = {
   id: "mclaren_f1_gtr",
   name: "F1 GTR",
   brand: "McLaren",
-  model: "/mclaren_f1_gtr.glb",
+  model: "/mclaren_f1_gtr.glb?v=webp2k1",
 
   engine: "6.0L BMW S70/2 V12 Naturally Aspirated",
   torque: "527 lb-ft (715 Nm)",
@@ -524,7 +524,7 @@ const jeep_wrangler = {
   id: "jeep_wrangler",
   name: "Wrangler",
   brand: "Jeep",
-  model: "/jeep_wrangler.glb",
+  model: "/jeep_wrangler.glb?v=webp2k1",
 
   engine: "6.4L HEMI V8 (392 cubic inches)",
   torque: "470 lb-ft (637 Nm)",

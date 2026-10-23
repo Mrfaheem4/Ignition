@@ -29,23 +29,23 @@ export default function BottomTiles({ car, visible }) {
     {
       label: "Engine",
       value: car.engine,
-      sub: "Handcrafted",
+      sub: "Engine configuration",
       icon: "M12 2v4m0 12v4M4.22 4.22l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.22 19.78l2.83-2.83m8.48-8.48l2.83-2.83",
       splitLayout: false,
     },
     {
-      label: "Power",
+      label: car.horsepower ? "Power" : "Torque",
       value: car.torque,
-      sub: "Power",
+      sub: car.horsepower ? "Power" : "Peak torque",
       valueLarge: car.horsepower,
       valueUnit: "hp",
       icon: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
-      splitLayout: true,
+      splitLayout: Boolean(car.horsepower),
     },
     {
       label: "Transmission",
       value: car.transmission,
-      sub: "Automatic\ntransmission",
+      sub: "Gearbox",
       dark: true,
       icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
       splitLayout: false,
@@ -53,7 +53,7 @@ export default function BottomTiles({ car, visible }) {
     {
       label: "Acceleration",
       value: car.zeroTo60,
-      valueLarge: car.zeroTo60Num,
+      valueLarge: car.zeroTo60Num ?? parseFloat(car.zeroTo60),
       valueUnit: "sec",
       sub: "0–60 mph",
       icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
@@ -65,7 +65,7 @@ export default function BottomTiles({ car, visible }) {
     <div
       ref={containerRef}
       className="fixed bottom-6 left-0 right-0 z-40"
-      style={{ opacity: 0, transform: "translateY(20px)" }}
+      style={{ opacity: 0, transform: "translateY(20px)", pointerEvents: visible ? "auto" : "none" }}
     >
       <div className="flex items-center gap-2 mb-2 ml-10">
         <h3 className="text-black font-bold text-base tracking-tight">
@@ -76,11 +76,11 @@ export default function BottomTiles({ car, visible }) {
         </div>
       </div>
 
-      <div className="flex gap-2 px-10">
+      <div className="flex gap-2 px-4 sm:px-10 overflow-x-auto">
         {tiles.map((tile, i) => (
           <div
             key={i}
-            className={`flex-1 rounded-2xl p-5 shadow-sm min-h-[130px] flex flex-col justify-between overflow-hidden relative
+            className={`flex-1 min-w-[230px] rounded-2xl p-5 shadow-sm min-h-[130px] flex flex-col justify-between overflow-hidden relative
               ${
                 tile.dark
                   ? "bg-black text-white"

@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import cars from "../data/cars";
 import LightRays from "./LightRays";
 
 export default function Home() {

@@ -1,32 +1,12 @@
-import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import cars from "../data/cars";
 import LightRays from "../Components/LightRays";
-import { useAmbientMusic } from "../Components/useAmbientMusic";
-import { preloadCarModel } from "../utils/modelPreloader";
 
 export default function Showroom() {
   const navigate = useNavigate();
 
-  // Initialize music on showroom mount (plays in background across pages)
-  useAmbientMusic();
-
-  // Preload only after the browser is idle so the showroom stays responsive.
-  useEffect(() => {
-    const firstCars = cars.slice(0, 2);
-    const schedule =
-      window.requestIdleCallback || ((callback) => setTimeout(callback, 300));
-    const cancel = window.cancelIdleCallback || clearTimeout;
-
-    const handle = schedule(() => {
-      firstCars.forEach((car) => preloadCarModel(car));
-    });
-
-    return () => cancel(handle);
-  }, []);
-
   return (
-    <div className="min-h-screen bg-[#050505] text-white py-20 px-8 relative selection:bg-white/10">
+    <div className="min-h-screen bg-[#050505] text-white py-12 sm:py-20 px-4 sm:px-8 relative selection:bg-white/10">
       {/* Subtle Light Rays - Reduced opacity for a cleaner look */}
       <div className="fixed inset-0 opacity-40">
         <LightRays
@@ -57,7 +37,7 @@ export default function Showroom() {
             <span className="text-[11px] tracking-[0.5em] uppercase text-white/30 font-light">
               Curated Automotive Excellence
             </span>
-            <h1 className="text-7xl font-bold tracking-tighter">
+            <h1 className="text-5xl sm:text-7xl font-bold tracking-tighter">
               The{" "}
               <span className="text-transparent bg-clip-text bg-linear-to-r from-white to-gray-500">
                 Collection
@@ -69,16 +49,10 @@ export default function Showroom() {
         {/* Cars Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {cars.map((car) => (
-            <div
+            <Link
               key={car.id}
-              onMouseEnter={() => preloadCarModel(car)}
-              onFocus={() => preloadCarModel(car)}
-              onClick={() => {
-                preloadCarModel(car);
-                navigate(`/car/${car.id}`);
-              }}
-              tabIndex={0}
-              className="group cursor-pointer relative"
+              to={`/car/${car.id}`}
+              className="group cursor-pointer relative block focus-visible:outline-white"
             >
               {/* Card Container */}
               <div className="relative overflow-hidden rounded-sm bg-linear-to-b from-[#111] to-[#0a0a0a] border border-white/5 group-hover:border-white/20 transition-all duration-500 p-10 h-full flex flex-col justify-between hover:scale-[1.03]">
@@ -101,6 +75,8 @@ export default function Showroom() {
                       src={`/logos/${car.id}.png`}
                       className="h-7 w-auto object-contain opacity-30 group-hover:opacity-100 transition-all duration-500"
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
 
@@ -137,7 +113,7 @@ export default function Showroom() {
                   </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

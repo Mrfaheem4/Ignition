@@ -3,10 +3,8 @@ import gsap from "gsap";
 
 export default function InfoPanel({
   hotspot,
-  accent,
   onClose,
   visible,
-  logoSrc,
   carName,
 }) {
   const panelRef = useRef();
@@ -32,8 +30,9 @@ export default function InfoPanel({
   return (
     <div
       ref={panelRef}
+      inert={!visible}
       className="fixed top-24 right-6 z-40 w-72 flex flex-col gap-2"
-      style={{ opacity: 1 }}
+      style={{ opacity: 0, pointerEvents: visible ? "auto" : "none" }}
     >
       {/* Logo + Car Name Card */}
       <div className="bg-white/70 backdrop-blur-md border border-black/5 rounded-2xl px-4 py-3 flex items-center gap-3">
