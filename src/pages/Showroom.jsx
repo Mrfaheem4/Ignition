@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import cars from "../data/cars";
+import { carLogo } from "../data/logos";
 import LightRays from "../Components/LightRays";
 
 export default function Showroom() {
@@ -72,7 +73,7 @@ export default function Showroom() {
                     </div>
                     {/* Integrated Logo - Original Colors */}
                     <img
-                      src={`/logos/${car.id}.png`}
+                      src={carLogo(car.id)}
                       className="h-7 w-auto object-contain opacity-30 group-hover:opacity-100 transition-all duration-500"
                       alt=""
                       loading="lazy"

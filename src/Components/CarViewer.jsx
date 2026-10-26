@@ -14,6 +14,7 @@ import gsap from "gsap";
 import IntroOverlay from "./IntroOverlay";
 import LoadingScreen from "./LoadingScreen";
 import cars from "../data/cars";
+import { carLogo } from "../data/logos";
 import InfoPanel from "./InfoPanel";
 import BottomTiles from "./BottomTiles";
 import { useAmbientMusic } from "./useAmbientMusic";
@@ -317,7 +318,7 @@ export default function CarViewer() {
         </div>
         <div className="mt-8">
           <img
-            src={`/logos/${currentCar.id}.png`}
+            src={carLogo(currentCar.id, "large")}
             alt={`${currentCar.brand} logo`}
             className="h-20 w-auto object-contain"
           />

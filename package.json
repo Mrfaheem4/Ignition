@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "optimize:models": "node scripts/optimize-models.mjs",
+    "optimize:logos": "node scripts/optimize-logos.mjs",
     "check:performance": "node scripts/check-performance.mjs"
   },
   "dependencies": {

@@ -29,3 +29,17 @@ HTML shows a startup placeholder before React initializes, and the external font
 - `npm run optimize:models` optimizes newly imported models in place. Original geometry is preserved; texture dimensions are capped at 2048. Existing optimized models are skipped.
 
 These are local build and asset checks. No deployed-network timing or browser visual measurement is claimed.
+
+## Network loading follow-up
+
+The collection now uses display-sized WebP logos (23.54 KB combined instead of
+1.17 MB of original PNGs, about 98% smaller). The viewer uses larger versions
+sized for its 80-pixel logo display on 2x screens. The favicon is resized to
+64 pixels. Vite emits these assets with content hashes so browsers can cache
+them separately from JavaScript. Originals remain in `public/logos`; regenerate
+display versions with `npm run optimize:logos` after replacing originals.
+
+Opening a valid car route now preloads only the selected model and lighting
+environment while the lazy viewer code downloads. Model geometry and textures
+are unchanged. The largest model remains 13.74 MB, so cold loads still depend
+on network bandwidth; localhost performance does not measure download time.
